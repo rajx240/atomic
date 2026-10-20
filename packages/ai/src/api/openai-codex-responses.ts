@@ -1270,7 +1270,7 @@ async function acquireWebSocket(
 				socket: cached.socket,
 				entry: cached,
 				reused: true,
-				release: ({ keep } = {}) => {
+				release: ({ keep }: { keep?: boolean } = {}) => {
 					if (!keep || !isWebSocketReusable(cached.socket)) {
 						closeWebSocketSilently(cached.socket);
 						const currentEntries = websocketSessionCache.get(sessionId);
@@ -1312,7 +1312,7 @@ async function acquireWebSocket(
 		socket,
 		entry,
 		reused: false,
-		release: ({ keep } = {}) => {
+		release: ({ keep }: { keep?: boolean } = {}) => {
 			if (!keep || !isWebSocketReusable(entry.socket)) {
 				closeWebSocketSilently(entry.socket);
 				if (entry.idleTimer) clearTimeout(entry.idleTimer);

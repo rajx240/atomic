@@ -251,12 +251,13 @@ function listWorkflowBuiltinNames(): string[] {
 // shared/authoring-contract.ts) as declarations into the copied workflows tree so
 // the @bastani/atomic/workflows exports `types` condition resolves to `.d.ts`.
 function emitWorkflowAuthoringTypes(): void {
-	const result = spawnSync("bunx", ["--no-install", "tsc", "-p", workflowsAuthoringTsconfig], {
-		cwd: packageRoot,
-		stdio: "inherit",
-	});
+	const result = spawnSync(
+		"node",
+		[join(packageRoot, "../../scripts/typescript-compiler.mjs"), "emit", "-p", workflowsAuthoringTsconfig],
+		{ cwd: packageRoot, stdio: "inherit" },
+	);
 	if (result.status !== 0) {
-		throw new Error(`Failed to emit @bastani/workflows authoring declarations (tsc exited ${result.status ?? "null"})`);
+		throw new Error(`Failed to emit @bastani/workflows authoring declarations (compiler exited ${result.status ?? "null"})`);
 	}
 	const emitted = join(workflowsDistDir, "src", "authoring.d.ts");
 	if (!existsSync(emitted)) {

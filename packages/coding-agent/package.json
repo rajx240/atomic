@@ -69,9 +69,9 @@
   ],
   "scripts": {
     "clean": "shx rm -rf dist",
-    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
-    "typecheck": "node ../../scripts/bun-typecheck.mjs -p tsconfig.build.json && node ../../scripts/bun-typecheck.mjs -p tsconfig.typetests.json",
-    "build": "tsc -p tsconfig.build.json && node scripts/build-codemode-worker.mjs && shx chmod +x dist/cli.js dist/rpc-entry.js && bun run copy-assets",
+    "dev": "node ../../scripts/typescript-compiler.mjs emit -p tsconfig.build.json --watch --preserveWatchOutput",
+    "typecheck": "node ../../scripts/typescript-compiler.mjs check -p tsconfig.build.json && node ../../scripts/typescript-compiler.mjs check -p tsconfig.typetests.json",
+    "build": "node ../../scripts/typescript-compiler.mjs emit -p tsconfig.build.json && node scripts/build-codemode-worker.mjs && shx chmod +x dist/cli.js dist/rpc-entry.js && bun run copy-assets",
     "bundle:dev": "bun build src/bun/cli.ts --target=bun --minify --external mupdf --define process.env.ATOMIC_BUNDLED_BUILD=\"'1'\" --outfile dist-dev/cli.js && bun build src/extensions/codemode/worker.ts --target=bun --format=esm --outfile dist-dev/codemode-worker.js && shx cp ../../node_modules/quickjs-wasi/quickjs.wasm dist-dev/",
     "start:fast": "bun run bundle:dev && bun dist-dev/cli.js",
     "build:binary": "bun run clean && bun run build && bun build --target=bun --format=cjs --minify-syntax --external mupdf --external=*native-modifiers.js ./dist/bun/cli.js --outfile dist/app.js && bun build --target=bun --format=cjs --external mupdf ./src/utils/image-resize-worker.ts --outfile dist/image-resize-worker.js && bun run build:codemode-worker && bun build --compile --bytecode --format=cjs --external mupdf --no-compile-autoload-dotenv --no-compile-autoload-bunfig ./dist/bun/split-loader.js --outfile dist/atomic && bun run copy-binary-assets && bun run assert-binary-assets",

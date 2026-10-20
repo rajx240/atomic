@@ -1522,7 +1522,7 @@ for (const runtime of ["node", "bun"] as const) {
 
 test("backend serialization keeps native lexemes and calls caller toJSON once per durable write", async () => {
 	const path = database();
-	const nativeJson = JSON as typeof JSON & { rawJSON(text: string): Readonly<{ rawJSON: string }> };
+	const nativeJson = JSON as { rawJSON(text: string): Readonly<{ rawJSON: string }> };
 	const values = Object.freeze([
 		nativeJson.rawJSON("1.2300e+02"),
 		nativeJson.rawJSON("-0"),

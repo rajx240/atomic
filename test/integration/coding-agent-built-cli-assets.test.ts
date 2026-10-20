@@ -20,11 +20,9 @@ afterAll(() => {
 function compileFixture(): void {
 	const result = spawnSyncCollect({
 		cmd: [
-			bunExecutable(),
-			"x",
-			"--bun",
-			"--no-install",
-			"tsc",
+			process.execPath,
+			join(repoRoot, "scripts/typescript-compiler.mjs"),
+			"emit",
 			"-p",
 			join(packageDir, "tsconfig.build.json"),
 			"--outDir",

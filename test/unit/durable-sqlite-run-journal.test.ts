@@ -597,7 +597,7 @@ test.each([
 	{ text: "\udfff\ud800\udc00\ud800", escaped: "\\udfff\ud800\udc00\\ud800" },
 	{ text: "\ud800\udc00\udbff\udfff", escaped: "\ud800\udc00\udbff\udfff" },
 ])("native rawJSON preserves $text through header/event JSON TEXT boundaries", async ({ text, escaped }) => {
-	const nativeJson = JSON as typeof JSON & { rawJSON(text: string): Readonly<{ rawJSON: string }> };
+	const nativeJson = JSON as { rawJSON(text: string): Readonly<{ rawJSON: string }> };
 	const raw = nativeJson.rawJSON(`"${text}"`);
 	const payload = Object.freeze({ rawJSON: raw, [text]: Object.freeze([raw, { nested: raw }, "\u0000", raw]) });
 	const expected = JSON.parse(JSON.stringify(payload));
@@ -653,7 +653,7 @@ test.each([
 });
 
 test("JSON TEXT preserves native raw lexemes and invokes caller toJSON once per write", async () => {
-	const nativeJson = JSON as typeof JSON & { rawJSON(text: string): Readonly<{ rawJSON: string }> };
+	const nativeJson = JSON as { rawJSON(text: string): Readonly<{ rawJSON: string }> };
 	const values = [
 		nativeJson.rawJSON("1.2300e+02"),
 		nativeJson.rawJSON("-0"),

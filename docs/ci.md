@@ -53,6 +53,17 @@ The release build downloads checksum-pinned PostgreSQL artifacts while preparing
 
 ### Static checks
 
+Compiler commands use `scripts/typescript-compiler.mjs`: `check` runs `tsrs --noEmit`,
+and `emit` runs `tsrs` (including watch mode), on Linux x64/arm64 and macOS arm64.
+The root development dependency pins `tsrs` to `0.18.0-ts7.1.0-dev.20260929`.
+This release has no Windows or Intel macOS binary. Those platforms explicitly
+retain the existing Bun ≥ 1.4.3 checker and TypeScript 7.0.2 emitter/watch process.
+The CI platform matrix and required gates remain unchanged. A native compiler
+error, crash, or missing installation fails the command; it never retries with
+another compiler. Keep TypeScript installed for the compatibility path, code that consumes its
+API, and package-consumer typing tests that verify downstream TypeScript support. Revisit the platform selection only after a pinned release
+supports the target, including watch, and its platform CI passes.
+
 The `static-checks` job runs `npm run check`: Biome, the root TypeScript check, package typechecks, and the published-shrinkwrap check. The typecheck path first builds `@bastani/pi-ai` to generate its model catalog, then runs its existing `tsconfig.json` check over both `src/` and `test/`. It also checks the coding-agent build and `test/types/` configurations. No pre-existing coding-agent `dist/` is required.
 
 ### Release artifact storage
@@ -718,3 +729,11 @@ Both polling doors run through durable `ctx.tool` nodes, forward their `AbortSig
 4. Inspect the single `Publish <version>` push run. Do not start a duplicate manual run during normal publication.
 5. If publication recovery is required, manually dispatch `publish.yml` with the original `tag`; set `source_ref` to the exact recovery ref whose package version still matches that tag. If only registration failed, rerun that job on the tag-ref run, or dispatch with `--ref` equal to the tag. A branch-ref dispatch will 401 at registration.
 6. Confirm all eleven npm packages and the public GitHub Release exist with the expected dist-tag and assets.
+
+The tsrs migration also removes pi-ai's wildcard JSON declaration: with
+`resolveJsonModule`, generated catalogs receive their concrete JSON types in
+both tsrs and Bun. The wildcard otherwise shadows those types in tsrs. Model
+hydration remains a prerequisite, as it already is for builds and root checking.
+Explicit callback parameter types retain the existing WebSocket release contract,
+and raw-JSON test fixtures use their existing structural return type without
+intersecting the newer TypeScript standard-library overload.
