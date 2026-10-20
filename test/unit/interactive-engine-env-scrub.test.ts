@@ -10,7 +10,7 @@ import {
 import { moduleDir, sleep } from "../helpers/runtime.js";
 import { DefaultMainDriver, isAlive, waitForExit } from "./fixtures/default-main-driver.ts";
 
-const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
+const serialTest = process.platform === "win32" ? test.skip : test;
 
 const ENGINE_ENV: Record<string, string> = {
 	ATOMIC_INTERACTIVE_ENGINE_CHILD: "1",
@@ -58,6 +58,7 @@ test("scrubInteractiveEngineEnv removes every engine key, preserves the rest, an
  */
 serialTest(
 	"a real engine child and its omitted-env subprocesses never see the control values",
+	{ concurrent: false, timeout: 30_000 },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-engine-env-"));
 		const probeFile = join(temp, "engine-env.json");
@@ -135,5 +136,4 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	30_000,
 );

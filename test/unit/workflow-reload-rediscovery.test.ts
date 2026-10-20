@@ -190,7 +190,9 @@ async function makeIsolatedRoots(label: string): Promise<{ root: string; project
 }
 
 describe("workflow reload rediscovery matrix", () => {
-	test.sequential("resource reload keeps a live zero-stage tool-only BACKGROUND widget mounted", async () => {
+	test("resource reload keeps a live zero-stage tool-only BACKGROUND widget mounted", {
+		concurrent: false,
+	}, async () => {
 		await makeIsolatedRoots("workflow-reload-live-widget");
 		store.recordRunStart({
 			id: testRunId("resource-reload-tool-only"),
@@ -233,7 +235,9 @@ describe("workflow reload rediscovery matrix", () => {
 		assert.match(mounted(undefined, undefined).render(120).join("\n"), /publish-watcher · running/);
 	});
 
-	test.sequential("reload refreshes all discovery scopes and public list/get/inputs/help/completion/invocation surfaces", async () => {
+	test("reload refreshes all discovery scopes and public list/get/inputs/help/completion/invocation surfaces", {
+		concurrent: false,
+	}, async () => {
 		// Exercise isolation even when the runner has no inherited agent-directory overrides.
 		const inherited = await makeIsolatedRoots("workflow-reload-inherited-agent");
 		process.env.ATOMIC_CODING_AGENT_DIR = inherited.agent;
@@ -343,7 +347,7 @@ describe("workflow reload rediscovery matrix", () => {
 		await expectCompleted(harness, run, { value: "declared:scope-project-atomic:hello" });
 	});
 
-	test.sequential("post-start global and configured additions preserve the active registry", async () => {
+	test("post-start global and configured additions preserve the active registry", { concurrent: false }, async () => {
 		const { root, project, agent } = await makeIsolatedRoots("workflow-reload-post-start");
 		const existing = join(project, ".atomic/workflows/existing.ts");
 		await writeWorkflow(existing, { name: "post-start-existing", description: "loaded first" });
@@ -407,7 +411,9 @@ describe("workflow reload rediscovery matrix", () => {
 		assert.equal(after.details?.output?.description, "helper-two:AuthStorage");
 	});
 
-	test.sequential("add edit rename delete and malformed siblings replace metadata while preserving valid workflows", async () => {
+	test("add edit rename delete and malformed siblings replace metadata while preserving valid workflows", {
+		concurrent: false,
+	}, async () => {
 		const { project } = await makeIsolatedRoots("workflow-reload-mutations");
 		const dir = join(project, ".atomic/workflows");
 		const stable = join(dir, "stable.ts");
@@ -476,7 +482,7 @@ describe("workflow reload rediscovery matrix", () => {
 		assert.ok(finalNames.includes("reload-stable"));
 	});
 
-	test.sequential("fatal refresh failure retains the complete previously applied registry", async () => {
+	test("fatal refresh failure retains the complete previously applied registry", { concurrent: false }, async () => {
 		const { project } = await makeIsolatedRoots("workflow-reload-failure");
 		const workflowPath = join(project, ".atomic/workflows/retained.ts");
 		await writeWorkflow(workflowPath, { name: "reload-retained", description: "before failure" });
@@ -507,7 +513,9 @@ describe("workflow reload rediscovery matrix", () => {
 		assert.equal(retained.details?.output?.description, "before failure");
 	});
 
-	test.sequential("reload during an in-flight workflow publishes new metadata without changing the running definition", async () => {
+	test("reload during an in-flight workflow publishes new metadata without changing the running definition", {
+		concurrent: false,
+	}, async () => {
 		const { project } = await makeIsolatedRoots("workflow-reload-inflight");
 		const workflowPath = join(project, ".atomic/workflows/inflight.ts");
 		await writeWorkflow(workflowPath, { name: "reload-inflight", description: "old metadata", prompt: "old prompt" });
@@ -564,7 +572,9 @@ describe("workflow reload rediscovery matrix", () => {
 		await expectCompleted(harness, completed, { value: "held:old prompt:value" });
 	});
 
-	test.sequential("overlapping reload recovers from an active failure and applies the coalesced trailing pass", async () => {
+	test("overlapping reload recovers from an active failure and applies the coalesced trailing pass", {
+		concurrent: false,
+	}, async () => {
 		await makeIsolatedRoots("workflow-reload-coalesce-failure");
 		const gates: Array<() => void> = [];
 		const starts: Array<() => void> = [];
@@ -607,7 +617,9 @@ describe("workflow reload rediscovery matrix", () => {
 		assert.ok(applied.generation > failed.generation);
 	});
 
-	test.sequential("queued old-session requests cannot coalesce with or publish into a new session", async () => {
+	test("queued old-session requests cannot coalesce with or publish into a new session", {
+		concurrent: false,
+	}, async () => {
 		await makeIsolatedRoots("workflow-reload-session-boundary");
 		const gates: Array<() => void> = [];
 		const starts: Array<() => void> = [];

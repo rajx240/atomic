@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { basename, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { test } from "vitest";
-import type { JsonTestResults } from "vitest/reporters";
+import type { JsonTestResults } from "vitest/node";
 import { repositoryRoot } from "../../vitest.base.js";
 import {
 	bunExecutable,

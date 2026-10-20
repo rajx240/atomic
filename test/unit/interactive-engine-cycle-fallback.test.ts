@@ -16,7 +16,7 @@ import {
 	spawnProcess,
 } from "../helpers/runtime.js";
 
-const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
+const serialTest = process.platform === "win32" ? test.skip : test;
 const prefix = "@@ATOMIC_TEST@@";
 const warning =
 	"Configured default model is unavailable or unsupported. Update defaultProvider/defaultModel or use /model.";
@@ -171,6 +171,7 @@ class Driver {
 
 serialTest(
 	"isolated Ctrl+P cycle clears stale fallback and accepts the next prompt",
+	{ concurrent: false, timeout: INTERACTIVE_CLI_TEST_TIMEOUT_MS },
 	async () => {
 		const root = mkdtempSync(join(tmpdir(), "atomic-cycle-fallback-"));
 		const cwd = join(root, "cwd");
@@ -369,5 +370,4 @@ serialTest(
 			rmSync(root, { recursive: true, force: true });
 		}
 	},
-	INTERACTIVE_CLI_TEST_TIMEOUT_MS,
 );

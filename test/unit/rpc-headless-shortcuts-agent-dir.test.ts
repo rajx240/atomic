@@ -14,7 +14,7 @@ function writeExpandBinding(agentDir: string, binding: string): void {
 	writeFileSync(join(agentDir, "keybindings.json"), JSON.stringify({ "app.tools.expand": binding }));
 }
 
-test.sequential("headless shortcut RPC uses one fallback manager from services.agentDir", async () => {
+test("headless shortcut RPC uses one fallback manager from services.agentDir", { concurrent: false }, async () => {
 	const serviceAgentDir = mkdtempSync(join(tmpdir(), "atomic-rpc-service-agent-dir-"));
 	const ambientAgentDir = mkdtempSync(join(tmpdir(), "atomic-rpc-ambient-agent-dir-"));
 	const previousAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;

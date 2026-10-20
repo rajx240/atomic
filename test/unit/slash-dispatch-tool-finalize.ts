@@ -57,7 +57,9 @@ describe("tool run-control actions", () => {
 		assert.equal(wasDispatched(), false);
 		assert.match((result as { error?: string }).error ?? "", /workflows cannot invoke workflows/);
 	}
-	test.sequential("makeExecuteWorkflowTool resume surfaces workflow_not_found for failed resumable run without registry definition", async () => {
+	test("makeExecuteWorkflowTool resume surfaces workflow_not_found for failed resumable run without registry definition", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`resume-tool-failed-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {

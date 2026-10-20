@@ -9,7 +9,10 @@ import { loginRpcOAuthProvider } from "../../packages/coding-agent/src/modes/rpc
 import type { RpcModelCatalog } from "../../packages/coding-agent/src/modes/rpc/rpc-types.ts";
 import { bunExecutable, moduleDir } from "../helpers/runtime.js";
 
-test.sequential("real isolated child discovers and acquires engine-only custom OAuth", async () => {
+test("real isolated child discovers and acquires engine-only custom OAuth", {
+	concurrent: false,
+	timeout: 20_000,
+}, async () => {
 	const temp = mkdtempSync(join(tmpdir(), "atomic-engine-oauth-"));
 	const agentDir = join(temp, "agent");
 	const logFile = join(temp, "oauth.log");
@@ -107,4 +110,4 @@ test.sequential("real isolated child discovers and acquires engine-only custom O
 		await client.stop();
 		rmSync(temp, { recursive: true, force: true });
 	}
-}, 20_000);
+});

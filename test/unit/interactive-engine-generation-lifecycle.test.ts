@@ -68,7 +68,10 @@ async function waitForEnginePid(client: RpcClient): Promise<number> {
 	throw new Error("engine child never reported its pid");
 }
 
-test.sequential("a child that exits before the host subscribes still reports its death exactly once", async () => {
+test("a child that exits before the host subscribes still reports its death exactly once", {
+	concurrent: false,
+	timeout: 30_000,
+}, async () => {
 	const client = startupCustomUiClient();
 	try {
 		await client.start();
@@ -102,9 +105,12 @@ test.sequential("a child that exits before the host subscribes still reports its
 	} finally {
 		await client.stop();
 	}
-}, 30_000);
+});
 
-test.sequential("a dead generation's buffered custom-UI frames are never delivered", async () => {
+test("a dead generation's buffered custom-UI frames are never delivered", {
+	concurrent: false,
+	timeout: 30_000,
+}, async () => {
 	const client = startupCustomUiClient();
 	try {
 		await client.start();
@@ -135,7 +141,7 @@ test.sequential("a dead generation's buffered custom-UI frames are never deliver
 	} finally {
 		await client.stop();
 	}
-}, 30_000);
+});
 
 test("the generation buffer keeps live frames and forgets dead ones", () => {
 	const buffer = new GenerationBuffer<string>();

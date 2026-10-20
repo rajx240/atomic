@@ -548,262 +548,256 @@ test(
 	WORKFLOW_MODULE_GRAPH_RELOAD_TIMEOUT_MS,
 );
 
-test.sequential(
-	"user-global agent launch keeps its real publish watcher through resource and installed full reload",
-	async () => {
-		const root = mkdtempSync(join(tmpdir(), "atomic-global-reload-"));
-		const agentDir = join(root, "agent");
-		const stateDir = join(root, "state");
-		mkdirSync(join(agentDir, "workflows"), { recursive: true });
-		mkdirSync(stateDir, { recursive: true });
-		writeFileSync(join(agentDir, "workflows", "global-publish-watch.ts"), globalIncidentSource(), "utf8");
-		const previousAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
-		const previousStateDir = process.env.ATOMIC_GLOBAL_RELOAD_STATE_DIR;
-		process.env.ATOMIC_CODING_AGENT_DIR = agentDir;
-		process.env.ATOMIC_GLOBAL_RELOAD_STATE_DIR = stateDir;
-		const trackedBus = createTrackedEventBus();
-		const runtimes: ExtensionRuntime[] = [];
-		const trackedJobs = new Set<Promise<void>>();
-		const trackedRunIds = new Set<string>();
-		let firstGeneration: WorkflowGeneration | undefined;
-		let secondGeneration: WorkflowGeneration | undefined;
-		let firstExtension: Extension | undefined;
-		let secondExtension: Extension | undefined;
-		let listenersAfterCleanup: number | undefined;
+test("user-global agent launch keeps its real publish watcher through resource and installed full reload", {
+	concurrent: false,
+	timeout: WORKFLOW_MODULE_GRAPH_RELOAD_TIMEOUT_MS,
+}, async () => {
+	const root = mkdtempSync(join(tmpdir(), "atomic-global-reload-"));
+	const agentDir = join(root, "agent");
+	const stateDir = join(root, "state");
+	mkdirSync(join(agentDir, "workflows"), { recursive: true });
+	mkdirSync(stateDir, { recursive: true });
+	writeFileSync(join(agentDir, "workflows", "global-publish-watch.ts"), globalIncidentSource(), "utf8");
+	const previousAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
+	const previousStateDir = process.env.ATOMIC_GLOBAL_RELOAD_STATE_DIR;
+	process.env.ATOMIC_CODING_AGENT_DIR = agentDir;
+	process.env.ATOMIC_GLOBAL_RELOAD_STATE_DIR = stateDir;
+	const trackedBus = createTrackedEventBus();
+	const runtimes: ExtensionRuntime[] = [];
+	const trackedJobs = new Set<Promise<void>>();
+	const trackedRunIds = new Set<string>();
+	let firstGeneration: WorkflowGeneration | undefined;
+	let secondGeneration: WorkflowGeneration | undefined;
+	let firstExtension: Extension | undefined;
+	let secondExtension: Extension | undefined;
+	let listenersAfterCleanup: number | undefined;
 
+	try {
+		const bus = trackedBus.bus;
+		const scope = {};
+		const widget = createWidgetUi();
+		const context = { hasUI: true, sessionId: "active-chat-turn", ui: widget.ui };
+		// Install the shared backend before either graph constructs its owning store.
+		const durableBackend = await createMemoryTestBackend();
+		setDurableBackend(durableBackend);
+		const first = await evaluateInstalledWorkflowGraph();
+		firstGeneration = first;
+		const firstRuntime = createHostRuntime(scope);
+		runtimes.push(firstRuntime);
+		firstExtension = await loadExtensionFromFactory(first.factory, repoRoot, bus, firstRuntime);
+		await emitSessionEvent(firstExtension, "session_start", { reason: "startup" }, context);
+		assert.equal(requireStoreDurableBackend(first.store), durableBackend);
+		await emitSessionEvent(firstExtension, "turn_start", { type: "turn_start" }, context);
+
+		const beforeLaunchReload = await executeWorkflowTool(
+			firstExtension,
+			"reload-before",
+			{ action: "reload" },
+			context,
+		);
+		assert.equal(beforeLaunchReload.action, "reload");
+		assert.equal(beforeLaunchReload.status, "ok", beforeLaunchReload.error);
+
+		const widgetCallStart = widget.calls.length;
+		const launched = await executeWorkflowTool(
+			firstExtension,
+			"agent-run",
+			{
+				action: "run",
+				workflow: "global-publish-watch",
+				inputs: { label: "agent" },
+			},
+			context,
+		);
+		const jobOwner = trackWorkflowJob(first, launched.runId, trackedRunIds, trackedJobs);
+		assert.equal(launched.action, "run");
+		assert.notEqual(launched.runId, "", launched.error);
+		assert.equal(launched.status, "running", JSON.stringify(launched));
+		await waitForCondition(
+			() =>
+				readGlobalIncidentState(stateDir).agent?.watcherRunning === true ||
+				first.store.runs().find((run) => run.id === launched.runId)?.status !== "running",
+			"the agent-origin publish watcher to start or terminate",
+		);
+		assert.equal(
+			readGlobalIncidentState(stateDir).agent?.watcherRunning,
+			true,
+			JSON.stringify(first.store.runs().find((run) => run.id === launched.runId)),
+		);
+
+		const initial = first.store.runs().find((run) => run.id === launched.runId);
+		assert.ok(initial, "the public workflow tool must publish the run to the session store");
+		assert.equal(initial.origin, "agent");
+		assert.deepEqual(initial.stages, []);
+		assert.deepEqual(
+			initial.toolNodes?.map((node) => [node.name, node.status]),
+			[
+				["cached-sibling", "completed"],
+				["publish-watcher", "running"],
+			],
+		);
+		assert.deepEqual(first.stageControlRegistry.forRun(launched.runId), []);
+		const initialWidget = widget.calls.slice(widgetCallStart).findLast((call) => call.factory !== undefined);
+		assert.ok(initialWidget?.factory, "run-start invalidation must mount the host widget before any stage exists");
+		assert.equal(initialWidget.placement, "belowEditor");
+		assert.match(initialWidget.factory(undefined, undefined).render(120).join("\n"), /BACKGROUND/);
+		emitReloadEvidence("agent-start", {
+			head: process.env.ATOMIC_RELOAD_EVIDENCE_HEAD,
+			origin: initial.origin,
+			stages: initial.stages.length,
+			tools: initial.toolNodes?.map((node) => [node.name, node.status]),
+			widget120: initialWidget.factory(undefined, undefined).render(120).join(" | "),
+		});
+
+		const liveNode = initial.toolNodes?.find((node) => node.name === "publish-watcher");
+		assert.ok(liveNode);
+		const toolOwner = first.toolControlRegistry.get(launched.runId, liveNode.id);
+		assert.ok(toolOwner);
+		assert.ok(jobOwner);
+
+		const activeReload = await executeWorkflowTool(firstExtension, "reload-active", { action: "reload" }, context);
+		assert.equal(activeReload.action, "reload");
+		assert.equal(activeReload.status, "ok", activeReload.error);
+		assert.equal(first.toolControlRegistry.get(launched.runId, liveNode.id), toolOwner);
+		assert.equal(first.jobTracker.get(launched.runId), jobOwner);
+		assert.deepEqual(readGlobalIncidentState(stateDir).agent, {
+			siblingExecutions: 1,
+			watcherExecutions: 1,
+			watcherRunning: true,
+		});
+		emitReloadEvidence("resource-reload-active", {
+			status: activeReload.status,
+			toolOwnerPreserved: first.toolControlRegistry.get(launched.runId, liveNode.id) === toolOwner,
+			jobOwnerPreserved: first.jobTracker.get(launched.runId) === jobOwner,
+			state: readGlobalIncidentState(stateDir).agent,
+		});
+
+		// Startup must not replay live work; the original callback retains ownership.
+		const reloadWidgetCallStart = widget.calls.length;
+		await emitSessionEvent(firstExtension, "session_shutdown", { reason: "reload" });
+		firstRuntime.invalidate();
+		setDurableBackend(durableBackend);
+		const second = await evaluateInstalledWorkflowGraph();
+		secondGeneration = second;
+		const secondRuntime = createHostRuntime(scope);
+		runtimes.push(secondRuntime);
+		secondExtension = await loadExtensionFromFactory(second.factory, repoRoot, bus, secondRuntime);
+		await emitSessionEvent(secondExtension, "session_start", { reason: "reload" }, context);
+		assert.equal(requireStoreDurableBackend(second.store), durableBackend);
+
+		const adopted = second.store.runs().find((run) => run.id === launched.runId);
+		assert.ok(adopted, "the installed replacement must adopt the user-global agent run");
+		assert.equal(adopted.status, "running");
+		assert.equal(adopted.resumable, undefined);
+		assert.deepEqual(adopted.stages, []);
+		assert.deepEqual(
+			adopted.toolNodes?.map((node) => [node.name, node.status]),
+			[
+				["cached-sibling", "completed"],
+				["publish-watcher", "running"],
+			],
+		);
+		assert.equal(second.toolControlRegistry.get(launched.runId, liveNode.id), toolOwner);
+		assert.equal(second.jobTracker.get(launched.runId), jobOwner);
+		assert.equal(readGlobalIncidentState(stateDir).agent?.watcherExecutions, 1);
+
+		const replacementWidget = widget.calls
+			.slice(reloadWidgetCallStart)
+			.findLast((call) => call.factory !== undefined);
+		assert.ok(replacementWidget?.factory, "the host must remount the adopted active run below the editor");
+		assert.match(replacementWidget.factory(undefined, undefined).render(120).join("\n"), /BACKGROUND/);
+		assert.deepEqual(replacementWidget.factory(undefined, undefined).render(60), [" ▾  1 background · 1 ● · 1 tool"]);
+		emitReloadEvidence("full-reload-adopted", {
+			status: adopted.status,
+			resumable: adopted.resumable ?? false,
+			tools: adopted.toolNodes?.map((node) => [node.name, node.status]),
+			toolOwnerPreserved: second.toolControlRegistry.get(launched.runId, liveNode.id) === toolOwner,
+			jobOwnerPreserved: second.jobTracker.get(launched.runId) === jobOwner,
+			watcherExecutions: readGlobalIncidentState(stateDir).agent?.watcherExecutions,
+			widget120: replacementWidget.factory(undefined, undefined).render(120).join(" | "),
+			widget60: replacementWidget.factory(undefined, undefined).render(60),
+		});
+
+		writeFileSync(join(stateDir, "agent.release"), "release", "utf8");
+		await waitForCondition(
+			() => second.store.runs().find((run) => run.id === launched.runId)?.status === "completed",
+			"the original callback owner to settle through the adopted store",
+		);
+		assert.equal(readGlobalIncidentState(stateDir).agent?.watcherExecutions, 1);
+		emitReloadEvidence("callback-settled", {
+			status: second.store.runs().find((run) => run.id === launched.runId)?.status,
+			watcherExecutions: readGlobalIncidentState(stateDir).agent?.watcherExecutions,
+		});
+
+		const slashCommand = secondExtension.commands.get("workflow");
+		assert.ok(slashCommand, "the /workflow command must be registered beside the public tool");
+		const rendersBeforeSlash = widget.renders.count;
+		await slashCommand.handler("global-publish-watch label=slash --no-picker", context as never);
+		await waitForCondition(
+			() => readGlobalIncidentState(stateDir).slash?.watcherRunning === true,
+			"the slash-command publish watcher to start",
+		);
+		const slashRun = second.store
+			.runs()
+			.find((run) => run.name === "global-publish-watch" && run.inputs.label === "slash");
+		assert.ok(slashRun);
+		const slashJobOwner = second.jobTracker.get(slashRun.id);
+		assert.ok(slashJobOwner);
+		trackedRunIds.add(slashRun.id);
+		trackedJobs.add(slashJobOwner.promise);
+		assert.equal(slashRun.origin, "user");
+		assert.deepEqual(slashRun.stages, []);
+		assert.deepEqual(second.stageControlRegistry.forRun(slashRun.id), []);
+		assert.ok(
+			widget.renders.count > rendersBeforeSlash,
+			"slash and agent launches must both invalidate the mounted host widget",
+		);
+		assert.match(replacementWidget.factory(undefined, undefined).render(120).join("\n"), /publish-watcher · running/);
+		writeFileSync(join(stateDir, "slash.release"), "release", "utf8");
+		await waitForCondition(
+			() => second.store.runs().find((run) => run.id === slashRun.id)?.status === "completed",
+			"the slash-command comparison run to settle",
+		);
+		assert.deepEqual(readGlobalIncidentState(stateDir).slash, {
+			siblingExecutions: 1,
+			watcherExecutions: 1,
+			watcherRunning: false,
+		});
+		emitReloadEvidence("agent-vs-slash", {
+			agentOrigin: initial.origin,
+			slashOrigin: slashRun.origin,
+			agentStages: initial.stages.length,
+			slashStages: slashRun.stages.length,
+			slashState: readGlobalIncidentState(stateDir).slash,
+		});
+	} finally {
 		try {
-			const bus = trackedBus.bus;
-			const scope = {};
-			const widget = createWidgetUi();
-			const context = { hasUI: true, sessionId: "active-chat-turn", ui: widget.ui };
-			// Install the shared backend before either graph constructs its owning store.
-			const durableBackend = await createMemoryTestBackend();
-			setDurableBackend(durableBackend);
-			const first = await evaluateInstalledWorkflowGraph();
-			firstGeneration = first;
-			const firstRuntime = createHostRuntime(scope);
-			runtimes.push(firstRuntime);
-			firstExtension = await loadExtensionFromFactory(first.factory, repoRoot, bus, firstRuntime);
-			await emitSessionEvent(firstExtension, "session_start", { reason: "startup" }, context);
-			assert.equal(requireStoreDurableBackend(first.store), durableBackend);
-			await emitSessionEvent(firstExtension, "turn_start", { type: "turn_start" }, context);
-
-			const beforeLaunchReload = await executeWorkflowTool(
-				firstExtension,
-				"reload-before",
-				{ action: "reload" },
-				context,
-			);
-			assert.equal(beforeLaunchReload.action, "reload");
-			assert.equal(beforeLaunchReload.status, "ok", beforeLaunchReload.error);
-
-			const widgetCallStart = widget.calls.length;
-			const launched = await executeWorkflowTool(
-				firstExtension,
-				"agent-run",
-				{
-					action: "run",
-					workflow: "global-publish-watch",
-					inputs: { label: "agent" },
-				},
-				context,
-			);
-			const jobOwner = trackWorkflowJob(first, launched.runId, trackedRunIds, trackedJobs);
-			assert.equal(launched.action, "run");
-			assert.notEqual(launched.runId, "", launched.error);
-			assert.equal(launched.status, "running", JSON.stringify(launched));
-			await waitForCondition(
-				() =>
-					readGlobalIncidentState(stateDir).agent?.watcherRunning === true ||
-					first.store.runs().find((run) => run.id === launched.runId)?.status !== "running",
-				"the agent-origin publish watcher to start or terminate",
-			);
-			assert.equal(
-				readGlobalIncidentState(stateDir).agent?.watcherRunning,
-				true,
-				JSON.stringify(first.store.runs().find((run) => run.id === launched.runId)),
-			);
-
-			const initial = first.store.runs().find((run) => run.id === launched.runId);
-			assert.ok(initial, "the public workflow tool must publish the run to the session store");
-			assert.equal(initial.origin, "agent");
-			assert.deepEqual(initial.stages, []);
-			assert.deepEqual(
-				initial.toolNodes?.map((node) => [node.name, node.status]),
-				[
-					["cached-sibling", "completed"],
-					["publish-watcher", "running"],
-				],
-			);
-			assert.deepEqual(first.stageControlRegistry.forRun(launched.runId), []);
-			const initialWidget = widget.calls.slice(widgetCallStart).findLast((call) => call.factory !== undefined);
-			assert.ok(initialWidget?.factory, "run-start invalidation must mount the host widget before any stage exists");
-			assert.equal(initialWidget.placement, "belowEditor");
-			assert.match(initialWidget.factory(undefined, undefined).render(120).join("\n"), /BACKGROUND/);
-			emitReloadEvidence("agent-start", {
-				head: process.env.ATOMIC_RELOAD_EVIDENCE_HEAD,
-				origin: initial.origin,
-				stages: initial.stages.length,
-				tools: initial.toolNodes?.map((node) => [node.name, node.status]),
-				widget120: initialWidget.factory(undefined, undefined).render(120).join(" | "),
-			});
-
-			const liveNode = initial.toolNodes?.find((node) => node.name === "publish-watcher");
-			assert.ok(liveNode);
-			const toolOwner = first.toolControlRegistry.get(launched.runId, liveNode.id);
-			assert.ok(toolOwner);
-			assert.ok(jobOwner);
-
-			const activeReload = await executeWorkflowTool(firstExtension, "reload-active", { action: "reload" }, context);
-			assert.equal(activeReload.action, "reload");
-			assert.equal(activeReload.status, "ok", activeReload.error);
-			assert.equal(first.toolControlRegistry.get(launched.runId, liveNode.id), toolOwner);
-			assert.equal(first.jobTracker.get(launched.runId), jobOwner);
-			assert.deepEqual(readGlobalIncidentState(stateDir).agent, {
-				siblingExecutions: 1,
-				watcherExecutions: 1,
-				watcherRunning: true,
-			});
-			emitReloadEvidence("resource-reload-active", {
-				status: activeReload.status,
-				toolOwnerPreserved: first.toolControlRegistry.get(launched.runId, liveNode.id) === toolOwner,
-				jobOwnerPreserved: first.jobTracker.get(launched.runId) === jobOwner,
-				state: readGlobalIncidentState(stateDir).agent,
-			});
-
-			// Startup must not replay live work; the original callback retains ownership.
-			const reloadWidgetCallStart = widget.calls.length;
-			await emitSessionEvent(firstExtension, "session_shutdown", { reason: "reload" });
-			firstRuntime.invalidate();
-			setDurableBackend(durableBackend);
-			const second = await evaluateInstalledWorkflowGraph();
-			secondGeneration = second;
-			const secondRuntime = createHostRuntime(scope);
-			runtimes.push(secondRuntime);
-			secondExtension = await loadExtensionFromFactory(second.factory, repoRoot, bus, secondRuntime);
-			await emitSessionEvent(secondExtension, "session_start", { reason: "reload" }, context);
-			assert.equal(requireStoreDurableBackend(second.store), durableBackend);
-
-			const adopted = second.store.runs().find((run) => run.id === launched.runId);
-			assert.ok(adopted, "the installed replacement must adopt the user-global agent run");
-			assert.equal(adopted.status, "running");
-			assert.equal(adopted.resumable, undefined);
-			assert.deepEqual(adopted.stages, []);
-			assert.deepEqual(
-				adopted.toolNodes?.map((node) => [node.name, node.status]),
-				[
-					["cached-sibling", "completed"],
-					["publish-watcher", "running"],
-				],
-			);
-			assert.equal(second.toolControlRegistry.get(launched.runId, liveNode.id), toolOwner);
-			assert.equal(second.jobTracker.get(launched.runId), jobOwner);
-			assert.equal(readGlobalIncidentState(stateDir).agent?.watcherExecutions, 1);
-
-			const replacementWidget = widget.calls
-				.slice(reloadWidgetCallStart)
-				.findLast((call) => call.factory !== undefined);
-			assert.ok(replacementWidget?.factory, "the host must remount the adopted active run below the editor");
-			assert.match(replacementWidget.factory(undefined, undefined).render(120).join("\n"), /BACKGROUND/);
-			assert.deepEqual(replacementWidget.factory(undefined, undefined).render(60), [
-				" ▾  1 background · 1 ● · 1 tool",
-			]);
-			emitReloadEvidence("full-reload-adopted", {
-				status: adopted.status,
-				resumable: adopted.resumable ?? false,
-				tools: adopted.toolNodes?.map((node) => [node.name, node.status]),
-				toolOwnerPreserved: second.toolControlRegistry.get(launched.runId, liveNode.id) === toolOwner,
-				jobOwnerPreserved: second.jobTracker.get(launched.runId) === jobOwner,
-				watcherExecutions: readGlobalIncidentState(stateDir).agent?.watcherExecutions,
-				widget120: replacementWidget.factory(undefined, undefined).render(120).join(" | "),
-				widget60: replacementWidget.factory(undefined, undefined).render(60),
-			});
-
-			writeFileSync(join(stateDir, "agent.release"), "release", "utf8");
-			await waitForCondition(
-				() => second.store.runs().find((run) => run.id === launched.runId)?.status === "completed",
-				"the original callback owner to settle through the adopted store",
-			);
-			assert.equal(readGlobalIncidentState(stateDir).agent?.watcherExecutions, 1);
-			emitReloadEvidence("callback-settled", {
-				status: second.store.runs().find((run) => run.id === launched.runId)?.status,
-				watcherExecutions: readGlobalIncidentState(stateDir).agent?.watcherExecutions,
-			});
-
-			const slashCommand = secondExtension.commands.get("workflow");
-			assert.ok(slashCommand, "the /workflow command must be registered beside the public tool");
-			const rendersBeforeSlash = widget.renders.count;
-			await slashCommand.handler("global-publish-watch label=slash --no-picker", context as never);
-			await waitForCondition(
-				() => readGlobalIncidentState(stateDir).slash?.watcherRunning === true,
-				"the slash-command publish watcher to start",
-			);
-			const slashRun = second.store
-				.runs()
-				.find((run) => run.name === "global-publish-watch" && run.inputs.label === "slash");
-			assert.ok(slashRun);
-			const slashJobOwner = second.jobTracker.get(slashRun.id);
-			assert.ok(slashJobOwner);
-			trackedRunIds.add(slashRun.id);
-			trackedJobs.add(slashJobOwner.promise);
-			assert.equal(slashRun.origin, "user");
-			assert.deepEqual(slashRun.stages, []);
-			assert.deepEqual(second.stageControlRegistry.forRun(slashRun.id), []);
-			assert.ok(
-				widget.renders.count > rendersBeforeSlash,
-				"slash and agent launches must both invalidate the mounted host widget",
-			);
-			assert.match(
-				replacementWidget.factory(undefined, undefined).render(120).join("\n"),
-				/publish-watcher · running/,
-			);
-			writeFileSync(join(stateDir, "slash.release"), "release", "utf8");
-			await waitForCondition(
-				() => second.store.runs().find((run) => run.id === slashRun.id)?.status === "completed",
-				"the slash-command comparison run to settle",
-			);
-			assert.deepEqual(readGlobalIncidentState(stateDir).slash, {
-				siblingExecutions: 1,
-				watcherExecutions: 1,
-				watcherRunning: false,
-			});
-			emitReloadEvidence("agent-vs-slash", {
-				agentOrigin: initial.origin,
-				slashOrigin: slashRun.origin,
-				agentStages: initial.stages.length,
-				slashStages: slashRun.stages.length,
-				slashState: readGlobalIncidentState(stateDir).slash,
-			});
-		} finally {
 			try {
-				try {
-					await releaseAndSettleGlobalReloadJobs(
-						stateDir,
-						secondGeneration ?? firstGeneration,
-						trackedRunIds,
-						trackedJobs,
-					);
-					const cleanupExtension = secondExtension ?? firstExtension;
-					if (cleanupExtension !== undefined) {
-						await emitSessionEvent(cleanupExtension, "session_shutdown", { reason: "quit" });
-					}
-				} finally {
-					setDurableBackend(undefined);
-					for (const runtime of runtimes) runtime.invalidate();
-					listenersAfterCleanup = trackedBus.listenerCount();
+				await releaseAndSettleGlobalReloadJobs(
+					stateDir,
+					secondGeneration ?? firstGeneration,
+					trackedRunIds,
+					trackedJobs,
+				);
+				const cleanupExtension = secondExtension ?? firstExtension;
+				if (cleanupExtension !== undefined) {
+					await emitSessionEvent(cleanupExtension, "session_shutdown", { reason: "quit" });
 				}
 			} finally {
-				if (previousAgentDir === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
-				else process.env.ATOMIC_CODING_AGENT_DIR = previousAgentDir;
-				if (previousStateDir === undefined) delete process.env.ATOMIC_GLOBAL_RELOAD_STATE_DIR;
-				else process.env.ATOMIC_GLOBAL_RELOAD_STATE_DIR = previousStateDir;
-				rmSync(root, { recursive: true, force: true });
+				setDurableBackend(undefined);
+				for (const runtime of runtimes) runtime.invalidate();
+				listenersAfterCleanup = trackedBus.listenerCount();
 			}
+		} finally {
+			if (previousAgentDir === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
+			else process.env.ATOMIC_CODING_AGENT_DIR = previousAgentDir;
+			if (previousStateDir === undefined) delete process.env.ATOMIC_GLOBAL_RELOAD_STATE_DIR;
+			else process.env.ATOMIC_GLOBAL_RELOAD_STATE_DIR = previousStateDir;
+			rmSync(root, { recursive: true, force: true });
 		}
-		assert.equal(listenersAfterCleanup, 0, "both extension generations must release event-bus listeners");
-	},
-	WORKFLOW_MODULE_GRAPH_RELOAD_TIMEOUT_MS,
-);
+	}
+	assert.equal(listenersAfterCleanup, 0, "both extension generations must release event-bus listeners");
+});
 
 test("an early post-launch failure settles tracked work before fixture removal", async () => {
 	const root = mkdtempSync(join(tmpdir(), "atomic-global-reload-probe-"));

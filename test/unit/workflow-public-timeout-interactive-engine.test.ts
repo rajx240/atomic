@@ -7,10 +7,11 @@ import { moduleDir } from "../helpers/runtime.js";
 import { DefaultMainDriver } from "./fixtures/default-main-driver.js";
 
 const REAL_ENGINE_WORKFLOW_TIMEOUT_TIMEOUT_MS = 60_000;
-const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
+const serialTest = process.platform === "win32" ? test.skip : test;
 
 serialTest(
 	"a real interactive engine settles workflow timeouts once and remains usable for pause",
+	{ concurrent: false, timeout: REAL_ENGINE_WORKFLOW_TIMEOUT_TIMEOUT_MS },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-workflow-public-timeout-"));
 		const extension = join(moduleDir(import.meta.url), "fixtures", "workflow-public-timeout-extension.ts");
@@ -84,5 +85,4 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	REAL_ENGINE_WORKFLOW_TIMEOUT_TIMEOUT_MS,
 );

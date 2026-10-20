@@ -130,103 +130,100 @@ async function createMode(agentDir: string, extensionFactory?: ExtensionFactory)
 	return mode;
 }
 
-test.sequential(
-	"exported InteractiveMode uses services.agentDir for display and editor input",
-	async () => {
-		const agentDir = mkdtempSync(join(tmpdir(), "atomic-explicit-agent-dir-"));
-		writeExpandBinding(agentDir, "ctrl+x");
-		const ambientDir = mkdtempSync(join(tmpdir(), "atomic-ambient-agent-dir-"));
-		process.env.ATOMIC_CODING_AGENT_DIR = ambientDir;
-		cleanup.push(async () => {
-			rmSync(ambientDir, { recursive: true, force: true });
+test("exported InteractiveMode uses services.agentDir for display and editor input", {
+	concurrent: false,
+	timeout: INTERACTIVE_MODE_HOST_TIMEOUT_MS,
+}, async () => {
+	const agentDir = mkdtempSync(join(tmpdir(), "atomic-explicit-agent-dir-"));
+	writeExpandBinding(agentDir, "ctrl+x");
+	const ambientDir = mkdtempSync(join(tmpdir(), "atomic-ambient-agent-dir-"));
+	process.env.ATOMIC_CODING_AGENT_DIR = ambientDir;
+	cleanup.push(async () => {
+		rmSync(ambientDir, { recursive: true, force: true });
+	});
+	const mode = await createMode(agentDir);
+	let dispatches = 0;
+	mode.defaultEditor.onAction("app.tools.expand", () => {
+		dispatches++;
+	});
+
+	assert.deepEqual(mode.keybindings.getKeys("app.tools.expand"), ["ctrl+x"]);
+	assert.equal(keyText("app.tools.expand"), "ctrl+x");
+	mode.defaultEditor.handleInput("\x18");
+	assert.equal(dispatches, 1);
+	let hostDisposals = 0;
+	mode.disposeInteractiveEngineHost = () => {
+		hostDisposals++;
+	};
+	mode.stop();
+	assert.equal(hostDisposals, 1, "mode stop must dispose its interactive-engine host attachment");
+});
+
+test("applies terminal capabilities before interactive rendering and before reload rebuilds", {
+	concurrent: false,
+	timeout: INTERACTIVE_MODE_HOST_TIMEOUT_MS,
+}, async () => {
+	const agentDir = mkdtempSync(join(tmpdir(), "atomic-capability-agent-dir-"));
+	writeTerminalSettings(agentDir, { hyperlinks: false, images: false, trueColor: false });
+	const mode = await createMode(agentDir);
+	assert.deepEqual(getCapabilities(), { hyperlinks: false, images: null, trueColor: false });
+
+	writeTerminalSettings(agentDir, { hyperlinks: true, images: "kitty", trueColor: true });
+	let capabilitiesDuringRebuild: ReturnType<typeof getCapabilities> | undefined;
+	mode.rebuildChatFromMessages = () => {
+		capabilitiesDuringRebuild = getCapabilities();
+	};
+	await mode.handleReloadCommand();
+	assert.deepEqual(capabilitiesDuringRebuild, { hyperlinks: true, images: "kitty", trueColor: true });
+});
+
+test("local slash and extension-context reloads stage keybindings before session_start and roll back in place", {
+	concurrent: false,
+	timeout: INTERACTIVE_MODE_HOST_TIMEOUT_MS,
+}, async () => {
+	const agentDir = mkdtempSync(join(tmpdir(), "atomic-local-reload-agent-dir-"));
+	process.env.ATOMIC_CODING_AGENT_DIR = agentDir;
+	writeExpandBinding(agentDir, "ctrl+x");
+	const observed: string[] = [];
+	const extension: ExtensionFactory = (api) => {
+		api.on("session_start", (event) => {
+			observed.push(`${event.reason}:${keyText("app.tools.expand")}`);
 		});
-		const mode = await createMode(agentDir);
-		let dispatches = 0;
-		mode.defaultEditor.onAction("app.tools.expand", () => {
-			dispatches++;
+		api.registerCommand("fixture-reload", {
+			description: "reload through extension context",
+			handler: async (_args, ctx) => ctx.reload(),
 		});
+	};
+	const mode = await createMode(agentDir, extension);
+	await mode.bindCurrentSessionExtensions();
+	const identity = mode.keybindings;
+	assert.deepEqual(observed, ["startup:ctrl+x"]);
 
-		assert.deepEqual(mode.keybindings.getKeys("app.tools.expand"), ["ctrl+x"]);
-		assert.equal(keyText("app.tools.expand"), "ctrl+x");
-		mode.defaultEditor.handleInput("\x18");
-		assert.equal(dispatches, 1);
-		let hostDisposals = 0;
-		mode.disposeInteractiveEngineHost = () => {
-			hostDisposals++;
-		};
-		mode.stop();
-		assert.equal(hostDisposals, 1, "mode stop must dispose its interactive-engine host attachment");
-	},
-	INTERACTIVE_MODE_HOST_TIMEOUT_MS,
-);
+	writeExpandBinding(agentDir, "ctrl+y");
+	await mode.handleReloadCommand();
+	assert.deepEqual(observed, ["startup:ctrl+x", "reload:ctrl+y"]);
+	assert.equal(mode.keybindings, identity);
+	assert.deepEqual(mode.keybindings.getKeys("app.tools.expand"), ["ctrl+y"]);
 
-test.sequential(
-	"applies terminal capabilities before interactive rendering and before reload rebuilds",
-	async () => {
-		const agentDir = mkdtempSync(join(tmpdir(), "atomic-capability-agent-dir-"));
-		writeTerminalSettings(agentDir, { hyperlinks: false, images: false, trueColor: false });
-		const mode = await createMode(agentDir);
-		assert.deepEqual(getCapabilities(), { hyperlinks: false, images: null, trueColor: false });
+	writeExpandBinding(agentDir, "ctrl+z");
+	const command = mode.session.extensionRunner.getCommand("fixture-reload");
+	assert.ok(command);
+	await command.handler("", mode.session.extensionRunner.createCommandContext());
+	assert.deepEqual(observed, ["startup:ctrl+x", "reload:ctrl+y", "reload:ctrl+z"]);
+	assert.equal(mode.keybindings, identity);
 
-		writeTerminalSettings(agentDir, { hyperlinks: true, images: "kitty", trueColor: true });
-		let capabilitiesDuringRebuild: ReturnType<typeof getCapabilities> | undefined;
-		mode.rebuildChatFromMessages = () => {
-			capabilitiesDuringRebuild = getCapabilities();
-		};
-		await mode.handleReloadCommand();
-		assert.deepEqual(capabilitiesDuringRebuild, { hyperlinks: true, images: "kitty", trueColor: true });
-	},
-	INTERACTIVE_MODE_HOST_TIMEOUT_MS,
-);
-
-test.sequential(
-	"local slash and extension-context reloads stage keybindings before session_start and roll back in place",
-	async () => {
-		const agentDir = mkdtempSync(join(tmpdir(), "atomic-local-reload-agent-dir-"));
-		process.env.ATOMIC_CODING_AGENT_DIR = agentDir;
-		writeExpandBinding(agentDir, "ctrl+x");
-		const observed: string[] = [];
-		const extension: ExtensionFactory = (api) => {
-			api.on("session_start", (event) => {
-				observed.push(`${event.reason}:${keyText("app.tools.expand")}`);
-			});
-			api.registerCommand("fixture-reload", {
-				description: "reload through extension context",
-				handler: async (_args, ctx) => ctx.reload(),
-			});
-		};
-		const mode = await createMode(agentDir, extension);
-		await mode.bindCurrentSessionExtensions();
-		const identity = mode.keybindings;
-		assert.deepEqual(observed, ["startup:ctrl+x"]);
-
-		writeExpandBinding(agentDir, "ctrl+y");
-		await mode.handleReloadCommand();
-		assert.deepEqual(observed, ["startup:ctrl+x", "reload:ctrl+y"]);
-		assert.equal(mode.keybindings, identity);
-		assert.deepEqual(mode.keybindings.getKeys("app.tools.expand"), ["ctrl+y"]);
-
-		writeExpandBinding(agentDir, "ctrl+z");
-		const command = mode.session.extensionRunner.getCommand("fixture-reload");
-		assert.ok(command);
-		await command.handler("", mode.session.extensionRunner.createCommandContext());
-		assert.deepEqual(observed, ["startup:ctrl+x", "reload:ctrl+y", "reload:ctrl+z"]);
-		assert.equal(mode.keybindings, identity);
-
-		writeExpandBinding(agentDir, "ctrl+w");
-		const session = mode.session;
-		const originalReload = session.reload.bind(session);
-		Object.defineProperty(session, "reload", {
-			configurable: true,
-			value: async (options?: AgentSessionReloadOptions) => {
-				await options?.beforeSessionStart?.();
-				throw new Error("fixture reload failure");
-			},
-		});
-		await mode.handleReloadCommand();
-		assert.equal(mode.keybindings, identity);
-		assert.deepEqual(mode.keybindings.getKeys("app.tools.expand"), ["ctrl+z"]);
-		Object.defineProperty(session, "reload", { configurable: true, value: originalReload });
-	},
-	INTERACTIVE_MODE_HOST_TIMEOUT_MS,
-);
+	writeExpandBinding(agentDir, "ctrl+w");
+	const session = mode.session;
+	const originalReload = session.reload.bind(session);
+	Object.defineProperty(session, "reload", {
+		configurable: true,
+		value: async (options?: AgentSessionReloadOptions) => {
+			await options?.beforeSessionStart?.();
+			throw new Error("fixture reload failure");
+		},
+	});
+	await mode.handleReloadCommand();
+	assert.equal(mode.keybindings, identity);
+	assert.deepEqual(mode.keybindings.getKeys("app.tools.expand"), ["ctrl+z"]);
+	Object.defineProperty(session, "reload", { configurable: true, value: originalReload });
+});

@@ -58,7 +58,7 @@ describe("tool run-control actions", () => {
 		assert.equal(wasDispatched(), false);
 		assert.match((result as { error?: string }).error ?? "", /workflows cannot invoke workflows/);
 	}
-	test.sequential("makeExecuteWorkflowTool stages clones pending prompts", async () => {
+	test("makeExecuteWorkflowTool stages clones pending prompts", { concurrent: false }, async () => {
 		const runId = testRunId(`stage-tool-prompt-clone-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
@@ -94,7 +94,7 @@ describe("tool run-control actions", () => {
 		assert.deepEqual(storedPrompt?.choices, ["yes"]);
 	});
 
-	test.sequential("makeExecuteWorkflowTool stage rejects all-run inspection", async () => {
+	test("makeExecuteWorkflowTool stage rejects all-run inspection", { concurrent: false }, async () => {
 		const handler = makeToolHandler();
 
 		const result = await handler({ action: "stage", all: true }, {} as never);
@@ -109,7 +109,7 @@ describe("tool run-control actions", () => {
 		assert.match(stage.error ?? "", /requires a single run/);
 	});
 
-	test.sequential("makeExecuteWorkflowTool stages supports all stage status filters", async () => {
+	test("makeExecuteWorkflowTool stages supports all stage status filters", { concurrent: false }, async () => {
 		const runId = testRunId(`stage-tool-status-filters-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		for (const status of [
@@ -145,7 +145,7 @@ describe("tool run-control actions", () => {
 		);
 	});
 
-	test.sequential("makeExecuteWorkflowTool stages reports missing and ambiguous run targets", async () => {
+	test("makeExecuteWorkflowTool stages reports missing and ambiguous run targets", { concurrent: false }, async () => {
 		const handler = makeToolHandler();
 
 		const missing = await handler({ action: "stages" }, {} as never);
@@ -183,7 +183,9 @@ describe("tool run-control actions", () => {
 		);
 	});
 
-	test.sequential("workflow status reports colliding 8-hex prefixes while full ids remain addressable", async () => {
+	test("workflow status reports colliding 8-hex prefixes while full ids remain addressable", {
+		concurrent: false,
+	}, async () => {
 		const anchor = testRunId("status-shared-prefix");
 		const firstId = `${anchor.slice(0, 24)}111111111111`;
 		const secondId = `${anchor.slice(0, 24)}222222222222`;
@@ -215,7 +217,9 @@ describe("tool run-control actions", () => {
 		}
 	});
 
-	test.sequential("makeExecuteWorkflowTool returns chronologically final snapshot result after tools", async () => {
+	test("makeExecuteWorkflowTool returns chronologically final snapshot result after tools", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`stage-tool-transcript-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {

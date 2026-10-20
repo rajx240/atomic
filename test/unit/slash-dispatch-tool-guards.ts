@@ -70,7 +70,9 @@ describe("tool run-control actions", () => {
 		assert.equal(wasDispatched(), false);
 		assert.match((result as { error?: string }).error ?? "", /workflows cannot invoke workflows/);
 	}
-	test.sequential("makeExecuteWorkflowTool blocks workflow tool execution from workflow-stage context", async () => {
+	test("makeExecuteWorkflowTool blocks workflow tool execution from workflow-stage context", {
+		concurrent: false,
+	}, async () => {
 		const { handler, wasDispatched } = makeDispatchTrackingWorkflowHandler();
 
 		const result = await handler(
@@ -91,7 +93,9 @@ describe("tool run-control actions", () => {
 		assertWorkflowToolBlocked(result, wasDispatched);
 	});
 
-	test.sequential("makeExecuteWorkflowTool blocks workflow tool execution from env workflow-stage guard", async () => {
+	test("makeExecuteWorkflowTool blocks workflow tool execution from env workflow-stage guard", {
+		concurrent: false,
+	}, async () => {
 		const previousGuard = process.env[WORKFLOW_STAGE_SUBAGENT_GUARD_ENV];
 		const { handler, wasDispatched } = makeDispatchTrackingWorkflowHandler();
 
@@ -105,7 +109,9 @@ describe("tool run-control actions", () => {
 		}
 	});
 
-	test.sequential("registered workflow tool returns a headless accepted run with inspectable completion", async () => {
+	test("registered workflow tool returns a headless accepted run with inspectable completion", {
+		concurrent: false,
+	}, async () => {
 		const resource = await makeRegisteredWorkflowToolWithResource(
 			"tool-headless-lifecycle.ts",
 			`import { workflow } from "@bastani/atomic/workflows";

@@ -115,7 +115,7 @@ export class RpcClient extends RpcClientApi {
 	private readonly activeActivityIds = new Set<string>();
 	private enginePid: number | undefined;
 
-	private declare options: RpcClientOptions;
+	declare private options: RpcClientOptions;
 
 	constructor(options: RpcClientOptions = {}) {
 		super();

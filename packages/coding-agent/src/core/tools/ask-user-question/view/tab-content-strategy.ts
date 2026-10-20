@@ -61,7 +61,7 @@ export class QuestionTabStrategy implements TabContentStrategy {
 	/** Spacer(1) + chatRow(1) + Spacer(1) + Text(hint, 1) = 4 rendered rows. */
 	readonly footerRowCount = 4;
 
-	private declare readonly config: QuestionTabStrategyConfig;
+	declare private readonly config: QuestionTabStrategyConfig;
 
 	constructor(config: QuestionTabStrategyConfig) {
 		this.config = config;
@@ -119,7 +119,7 @@ export class SubmitTabStrategy implements TabContentStrategy {
 	/** Spacer(1) + Text(prompt, 1) + Spacer(1) + submitPicker(2) = 5 rendered rows. Fallback path lands at 5 via 2 trailing Spacer(1)s. */
 	readonly footerRowCount = 5;
 
-	private declare readonly config: SubmitTabStrategyConfig;
+	declare private readonly config: SubmitTabStrategyConfig;
 
 	constructor(config: SubmitTabStrategyConfig) {
 		this.config = config;

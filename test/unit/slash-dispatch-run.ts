@@ -15,7 +15,7 @@ import {
 installSlashDispatchTestHooks();
 
 describe("slash /workflow <name> dispatch", () => {
-	test.sequential("/workflow <known-name> dispatches run, not unknown subcommand", async () => {
+	test("/workflow <known-name> dispatches run, not unknown subcommand", { concurrent: false }, async () => {
 		const wf = workflow({
 			name: "test-wf",
 			description: "",
@@ -104,7 +104,7 @@ describe("slash /workflow <name> dispatch", () => {
 		);
 	});
 
-	test.sequential("/workflow <unknown-name> prints 'Workflow not found: <name>'", async () => {
+	test("/workflow <unknown-name> prints 'Workflow not found: <name>'", { concurrent: false }, async () => {
 		const registry = createRegistry([]);
 		const runtime = createExtensionRuntime({ registry });
 		const { ctx, messages } = buildCtx();

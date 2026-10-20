@@ -70,7 +70,7 @@ export default function(pi) {
   pi.registerShortcut("ctrl+shift+d", { description: "bundled dynamic winner", handler: async () => {} });
   `
 			: ""
-}
+  }
   ${
 		label === "legacy"
 			? `
@@ -89,7 +89,7 @@ export default function(pi) {
   }));
   `
 			: ""
-}
+  }
   pi.on("session_start", async () => {
     pi.registerTool({ name: "late-shared-tool", description: "${label} late tool", parameters: Type.Object({}), execute: async () => ({ content: [] }) });
     pi.registerTool({ name: "late-second-shared-tool", description: "${label} second late tool", parameters: Type.Object({}), execute: async () => ({ content: [] }) });

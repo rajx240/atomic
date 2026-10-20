@@ -10,7 +10,7 @@ import { run } from "../../packages/workflows/src/engine/run.ts";
 import { createStore } from "../../packages/workflows/src/shared/store.ts";
 import { createMemoryTestBackend } from "../helpers/workflow-journal.js";
 
-test.sequential("real workflow author, ctx.tool, and stage adapter callbacks report activity", async () => {
+test("real workflow author, ctx.tool, and stage adapter callbacks report activity", { concurrent: false }, async () => {
 	const started: CallbackActivity[] = [];
 	setCallbackActivityReporter({ started: (activity) => started.push(activity), finished: () => {} });
 	try {

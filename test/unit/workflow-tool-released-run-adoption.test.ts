@@ -121,7 +121,9 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 		["checkpointed", { completedCheckpoints: 1 }],
 		["human-input-pending", { completedCheckpoints: 0, pendingPrompts: 1 }],
 	] as const) {
-		test.sequential(`the successor session's model resumes a released ${label} run and takes ownership (#3569)`, async () => {
+		test(`the successor session's model resumes a released ${label} run and takes ownership (#3569)`, {
+			concurrent: false,
+		}, async () => {
 			const runId = testRunId(`tool-released-adoption-${label}`);
 			const backend = await createMemoryTestBackend();
 			setDurableBackend(backend);
@@ -139,7 +141,9 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 		});
 	}
 
-	test.sequential("the successor adopts a released run whose paused snapshot is still in the shared run store (#3569)", async () => {
+	test("the successor adopts a released run whose paused snapshot is still in the shared run store (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("tool-released-adoption-shared-store");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -165,7 +169,7 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 		assert.equal(backend.getWorkflow(runId)?.releasedModelOwner, undefined);
 	});
 
-	test.sequential("the original owner resuming its own released run keeps working (#3569)", async () => {
+	test("the original owner resuming its own released run keeps working (#3569)", { concurrent: false }, async () => {
 		const runId = testRunId("tool-released-original-owner");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -178,7 +182,9 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 		assert.equal(backend.getWorkflow(runId)?.releasedModelOwner, undefined);
 	});
 
-	test.sequential("the model tool refuses unreleased, live-owned, foreign-scope and terminal runs unchanged (#3569)", async () => {
+	test("the model tool refuses unreleased, live-owned, foreign-scope and terminal runs unchanged (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const cases = [
 			{ label: "paused run its owner never released", overrides: { releasedModelOwner: undefined } },
 			{ label: "run released by a different owner", overrides: { releasedModelOwner: OTHER_SESSION } },
@@ -214,7 +220,9 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 		}
 	});
 
-	test.sequential("the model tool still refuses mutating actions on a released run it has not adopted (#3569)", async () => {
+	test("the model tool still refuses mutating actions on a released run it has not adopted (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("tool-released-mutating-actions");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -233,7 +241,9 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 		assert.deepEqual(backend.getWorkflow(runId), before);
 	});
 
-	test.sequential("the model tool still refuses status and stages on runs that are not released to the caller (#3569)", async () => {
+	test("the model tool still refuses status and stages on runs that are not released to the caller (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const cases = [
 			{ label: "paused run its owner never released", overrides: { releasedModelOwner: undefined } },
 			{ label: "run released by a different owner", overrides: { releasedModelOwner: OTHER_SESSION } },
@@ -261,7 +271,9 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 		}
 	});
 
-	test.sequential("the successor's model inspects a released run's status before adopting it (#3569)", async () => {
+	test("the successor's model inspects a released run's status before adopting it (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("tool-released-status-detail");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -276,7 +288,9 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 		assert.deepEqual(backend.getWorkflow(runId), before);
 	});
 
-	test.sequential("the successor's model inspects a released run whose predecessor snapshot is still in the store (#3569)", async () => {
+	test("the successor's model inspects a released run whose predecessor snapshot is still in the store (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("tool-released-status-shared-store");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -299,7 +313,9 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 		assert.deepEqual(backend.getWorkflow(runId), before);
 	});
 
-	test.sequential("the successor's model inspects a released run's stages without a store snapshot (#3569)", async () => {
+	test("the successor's model inspects a released run's stages without a store snapshot (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("tool-released-stages-durable");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -310,7 +326,9 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 		assert.equal("error" in stages && stages.error !== undefined, false);
 	});
 
-	test.sequential("once another session adopts a released run, the predecessor's inspection is refused again (#3569)", async () => {
+	test("once another session adopts a released run, the predecessor's inspection is refused again (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("tool-released-inspection-after-adoption");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -333,7 +351,9 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 		}
 	});
 
-	test.sequential("a released run adopted by one session tells the second adopter it is now owned elsewhere (#3569)", async () => {
+	test("a released run adopted by one session tells the second adopter it is now owned elsewhere (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("tool-released-second-adopter");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -351,7 +371,9 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 		assert.equal(backend.getWorkflow(runId)?.modelOwner, SUCCESSOR_SESSION);
 	});
 
-	test.sequential("the runtime resume guard reports a lost adoption race as owned by another session (#3569)", async () => {
+	test("the runtime resume guard reports a lost adoption race as owned by another session (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("runtime-released-second-adopter");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -379,7 +401,9 @@ describe("the model-facing workflow tool adopts runs released by a switched-away
 });
 
 describe("SDK session control adopts runs released by a switched-away session (#3569)", () => {
-	test.sequential("the SDK adopts a released run whose paused snapshot is still in the shared run store (#3569)", async () => {
+	test("the SDK adopts a released run whose paused snapshot is still in the shared run store (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("sdk-released-adoption-shared-store");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -410,7 +434,9 @@ describe("SDK session control adopts runs released by a switched-away session (#
 		assert.equal(backend.getWorkflow(runId)?.releasedModelOwner, undefined);
 	});
 
-	test.sequential("the SDK's second adopter gets an ownership error naming the adoption (#3569)", async () => {
+	test("the SDK's second adopter gets an ownership error naming the adoption (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("sdk-released-second-adopter");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);

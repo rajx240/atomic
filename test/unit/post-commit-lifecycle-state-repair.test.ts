@@ -265,7 +265,9 @@ describe("post-commit quit and nested resume coherence", () => {
 		assert.equal(backend.getWorkflow(rootId)?.status, "running");
 	});
 
-	test.sequential("slash-targeted nested progress then tool root retry does not duplicate resumed descendants", async () => {
+	test("slash-targeted nested progress then tool root retry does not duplicate resumed descendants", {
+		concurrent: false,
+	}, async () => {
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
 		const rootId = fixtureRunId("root-reverse-surface-retry");
@@ -318,7 +320,9 @@ describe("post-commit quit and nested resume coherence", () => {
 		assert.equal(backend.getWorkflow(rootId)?.status, "running");
 	});
 
-	test.sequential("tool-targeted nested progress then slash root retry resumes only the remaining descendant", async () => {
+	test("tool-targeted nested progress then slash root retry resumes only the remaining descendant", {
+		concurrent: false,
+	}, async () => {
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
 		const rootId = fixtureRunId("root-surface-retry");
@@ -377,7 +381,9 @@ describe("post-commit quit and nested resume coherence", () => {
 		assert.equal(backend.getWorkflow(rootId)?.status, "running");
 		assert.match(messages.join("\n"), /Resumed 1 stage/);
 	});
-	test.sequential("slash resume reports synthetic prompt acknowledgement as info while the root completes", async () => {
+	test("slash resume reports synthetic prompt acknowledgement as info while the root completes", {
+		concurrent: false,
+	}, async () => {
 		const runId = fixtureRunId("resume-terminal-synthetic-slash");
 		const backend = await startAnsweredQuitSyntheticPrompt(runId);
 		const { workflowCmd } = await registerWorkflowCommand();
@@ -401,7 +407,9 @@ describe("post-commit quit and nested resume coherence", () => {
 		assert.equal(backend.getWorkflow(runId)?.status, "completed");
 	});
 
-	test.sequential("tool resume reports synthetic prompt acknowledgement as ok while the root completes", async () => {
+	test("tool resume reports synthetic prompt acknowledgement as ok while the root completes", {
+		concurrent: false,
+	}, async () => {
 		const runId = fixtureRunId("resume-terminal-synthetic-tool");
 		const backend = await startAnsweredQuitSyntheticPrompt(runId);
 
@@ -419,7 +427,9 @@ describe("post-commit quit and nested resume coherence", () => {
 		assert.equal(backend.getWorkflow(runId)?.status, "completed");
 	});
 
-	test.sequential("slash resume reports terminal completion acknowledged by a paused control", async () => {
+	test("slash resume reports terminal completion acknowledged by a paused control", {
+		concurrent: false,
+	}, async () => {
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
 		const runId = fixtureRunId("resume-terminal-slash");
@@ -504,7 +514,7 @@ describe("post-commit quit and nested resume coherence", () => {
 		assert.equal(backend.getWorkflow(runId)?.status, "completed");
 	});
 
-	test.sequential("tool resume reports async terminal completion as successful progress", async () => {
+	test("tool resume reports async terminal completion as successful progress", { concurrent: false }, async () => {
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
 		const runId = fixtureRunId("resume-terminal-tool");
@@ -580,7 +590,9 @@ describe("post-commit quit and nested resume coherence", () => {
 		assert.equal(backend.getWorkflow(runId)?.status, "completed");
 	});
 
-	test.sequential("tool resume retains noop for a pre-existing paused snapshot with no paused control", async () => {
+	test("tool resume retains noop for a pre-existing paused snapshot with no paused control", {
+		concurrent: false,
+	}, async () => {
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
 		const runId = fixtureRunId("resume-no-paused-control");
@@ -646,7 +658,9 @@ describe("post-commit quit and nested resume coherence", () => {
 		assert.deepEqual(errors, [`No paused stages on run ${runId}.`]);
 	});
 
-	test.sequential("slash quit, held synthetic prompt answer, and resume reports one truthful acknowledgment", async () => {
+	test("slash quit, held synthetic prompt answer, and resume reports one truthful acknowledgment", {
+		concurrent: false,
+	}, async () => {
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
 		const runId = fixtureRunId("resume-synthetic-prompt-command");

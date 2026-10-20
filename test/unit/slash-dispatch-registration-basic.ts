@@ -24,7 +24,7 @@ describe("factory command registration (real factory)", () => {
 		return commands;
 	}
 
-	test.sequential("per-workflow slash aliases are not registered", async () => {
+	test("per-workflow slash aliases are not registered", { concurrent: false }, async () => {
 		const commands = await runFactoryWithMock();
 		const names = commands.map((c) => c.name);
 		assert.equal(
@@ -33,7 +33,7 @@ describe("factory command registration (real factory)", () => {
 		);
 	});
 
-	test.sequential("base /workflow command registers quit without kill help", async () => {
+	test("base /workflow command registers quit without kill help", { concurrent: false }, async () => {
 		const commands = await runFactoryWithMock();
 		const workflowCommand = commands.find((command) => command.name === "workflow");
 		assert.notEqual(workflowCommand, undefined);
@@ -47,7 +47,7 @@ describe("factory command registration (real factory)", () => {
 // ---------------------------------------------------------------------------
 
 describe("getArgumentCompletions includes workflow names", () => {
-	test.sequential("completions include admin subcommands and workflow names from registry", async () => {
+	test("completions include admin subcommands and workflow names from registry", { concurrent: false }, async () => {
 		const { pi, commands } = buildMockPi();
 		await runFactory(pi);
 
@@ -74,7 +74,7 @@ describe("getArgumentCompletions includes workflow names", () => {
 		assert.ok(labels.includes("open-claude-design"));
 	});
 
-	test.sequential("completions filter by partial prefix", async () => {
+	test("completions filter by partial prefix", { concurrent: false }, async () => {
 		const { pi, commands } = buildMockPi();
 		await runFactory(pi);
 
@@ -87,7 +87,7 @@ describe("getArgumentCompletions includes workflow names", () => {
 		assert.ok(completions.map((c) => c.label).includes("list"));
 	});
 
-	test.sequential("completions cover subcommand arguments without shadowing submit", async () => {
+	test("completions cover subcommand arguments without shadowing submit", { concurrent: false }, async () => {
 		const { pi, commands } = buildMockPi();
 		await runFactory(pi);
 
@@ -129,7 +129,7 @@ describe("getArgumentCompletions includes workflow names", () => {
 		assert.doesNotMatch(workflowCommand?.description ?? "", /interrupt/);
 	});
 
-	test.sequential("trailing-space completion does not throw on empty subcommand", async () => {
+	test("trailing-space completion does not throw on empty subcommand", { concurrent: false }, async () => {
 		// Regression: typing `/workflow ` (just the slash command + space)
 		// forwards `partial = " "` to getArgumentCompletions, which used to
 		// fall through to `registry.get("")`, throwing
@@ -155,7 +155,7 @@ describe("getArgumentCompletions includes workflow names", () => {
 // ---------------------------------------------------------------------------
 
 describe("/workflow session namespace removed", () => {
-	test.sequential("/workflow session ... is not treated as a control namespace", async () => {
+	test("/workflow session ... is not treated as a control namespace", { concurrent: false }, async () => {
 		const { pi, commands } = buildMockPi();
 		await runFactory(pi);
 
@@ -174,7 +174,7 @@ describe("/workflow session namespace removed", () => {
 // ---------------------------------------------------------------------------
 
 describe("inputs subcommand", () => {
-	test.sequential("/workflow inputs with no name prints usage", async () => {
+	test("/workflow inputs with no name prints usage", { concurrent: false }, async () => {
 		const { pi, commands } = buildMockPi();
 		await runFactory(pi);
 
@@ -186,7 +186,7 @@ describe("inputs subcommand", () => {
 		assert.ok(messages[0].includes("inputs"));
 	});
 
-	test.sequential("/workflow inputs <unknown> prints workflow not found plus available", async () => {
+	test("/workflow inputs <unknown> prints workflow not found plus available", { concurrent: false }, async () => {
 		const { pi, commands } = buildMockPi();
 		await runFactory(pi);
 
@@ -198,7 +198,7 @@ describe("inputs subcommand", () => {
 		assert.ok(messages[0].includes("Available:"));
 	});
 
-	test.sequential("/workflow inputs <known> shows schema", async () => {
+	test("/workflow inputs <known> shows schema", { concurrent: false }, async () => {
 		const { pi, commands, sent } = buildMockPi();
 		await runFactory(pi);
 
@@ -221,7 +221,9 @@ describe("inputs subcommand", () => {
 // ---------------------------------------------------------------------------
 
 describe("/workflow <name> prompt=test dispatches run via factory", () => {
-	test.sequential("/workflow fan-out-and-synthesize dispatches run action (not unknown subcommand)", async () => {
+	test("/workflow fan-out-and-synthesize dispatches run action (not unknown subcommand)", {
+		concurrent: false,
+	}, async () => {
 		const { pi, commands, sent } = buildMockPi();
 		await runFactory(pi);
 

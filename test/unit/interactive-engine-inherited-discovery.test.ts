@@ -13,7 +13,7 @@ import {
 	spawnProcess,
 } from "../helpers/runtime.js";
 
-const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
+const serialTest = process.platform === "win32" ? test.skip : test;
 const PREFIX = "@@ATOMIC_TEST@@";
 const INHERITED_DISCOVERY_TIMEOUT_MS = 60_000;
 const INHERITED_REPORT_TIMEOUT_MS = 30_000;
@@ -233,6 +233,7 @@ async function waitForCommand(driver: InteractiveDriver): Promise<Set<string>> {
 
 serialTest(
 	"isolated interactive mode discovers and runs compatible inherited Pi extensions without durable recovery (#3468)",
+	{ concurrent: false, timeout: INHERITED_DISCOVERY_TIMEOUT_MS },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-inherited-tui-"));
 		const home = join(temp, "home");
@@ -274,11 +275,11 @@ serialTest(
 			await removeTempDirectory(temp);
 		}
 	},
-	INHERITED_DISCOVERY_TIMEOUT_MS,
 );
 
 serialTest(
 	"isolated interactive mode preserves an explicit Atomic agent directory override",
+	{ concurrent: false, timeout: INHERITED_DISCOVERY_TIMEOUT_MS },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-explicit-tui-"));
 		const home = join(temp, "home");
@@ -300,5 +301,4 @@ serialTest(
 			await removeTempDirectory(temp);
 		}
 	},
-	INHERITED_DISCOVERY_TIMEOUT_MS,
 );

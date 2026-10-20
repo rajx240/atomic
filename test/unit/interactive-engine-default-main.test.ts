@@ -20,20 +20,24 @@ import {
  * hanging until the 6h timeout), so the suite is POSIX-only until a
  * Windows-safe harness exists.
  */
-const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
+const serialTest = process.platform === "win32" ? test.skip : test;
 
-serialTest("PID-file polling ignores an observable empty file while the writer is publishing", async () => {
-	const temp = mkdtempSync(join(tmpdir(), "atomic-pid-file-"));
-	const path = join(temp, "process.pid");
-	writeFileSync(path, "", "utf8");
-	const publish = sleep(25).then(() => writeFileSync(path, "123", "utf8"));
-	try {
-		assert.equal(await waitForFile(path), 123);
-	} finally {
-		await publish;
-		rmSync(temp, { recursive: true, force: true });
-	}
-});
+serialTest(
+	"PID-file polling ignores an observable empty file while the writer is publishing",
+	{ concurrent: false },
+	async () => {
+		const temp = mkdtempSync(join(tmpdir(), "atomic-pid-file-"));
+		const path = join(temp, "process.pid");
+		writeFileSync(path, "", "utf8");
+		const publish = sleep(25).then(() => writeFileSync(path, "123", "utf8"));
+		try {
+			assert.equal(await waitForFile(path), 123);
+		} finally {
+			await publish;
+			rmSync(temp, { recursive: true, force: true });
+		}
+	},
+);
 
 function fixtureArgs(extension: string): string[] {
 	return [
@@ -81,6 +85,7 @@ function assertNoForbiddenTerminationText(reports: HarnessReport[]): void {
 
 serialTest(
 	"Escape never terminates a wedged engine; explicit Ctrl+C kills the full blocked process tree",
+	{ concurrent: false, timeout: 40_000 },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-default-main-"));
 		const toolPidFile = join(temp, "tool.pid");
@@ -185,11 +190,11 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	40_000,
 );
 
 serialTest(
 	"forced default-main host death leaves no engine or detached grandchild",
+	{ concurrent: false, timeout: 20_000 },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-host-death-"));
 		const toolPidFile = join(temp, "tool.pid");
@@ -217,11 +222,11 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	20_000,
 );
 
 serialTest(
 	"default InteractiveMode host mutations persist exactly once in the engine",
+	{ concurrent: false, timeout: 20_000 },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-exact-once-"));
 		const extension = join(moduleDir(import.meta.url), "fixtures", "blocking-tool-extension.ts");
@@ -261,11 +266,11 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	20_000,
 );
 
 serialTest(
 	"default InteractiveMode preserves child-owned custom renderers and factory widgets",
+	{ concurrent: false, timeout: 20_000 },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-render-parity-"));
 		const rendererPidFile = join(temp, "renderer.pid");
@@ -306,7 +311,6 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	20_000,
 );
 
 function commandNames(items: HarnessReport["items"]): Set<string> {
@@ -403,6 +407,7 @@ const ENGINE_RESTART_TEST_TIMEOUT_MS = 120_000;
 
 serialTest(
 	"isolated default main lists and executes engine-only /workflow and /workflows while the host has no extensions",
+	{ concurrent: false, timeout: ENGINE_RESTART_TEST_TIMEOUT_MS },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-remote-commands-"));
 		const extension = join(moduleDir(import.meta.url), "fixtures", "workflow-command-extension.ts");
@@ -467,5 +472,4 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	ENGINE_RESTART_TEST_TIMEOUT_MS,
 );

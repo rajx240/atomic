@@ -204,7 +204,7 @@ export function formatCwdForFooter(cwd: string, home: string | undefined): strin
 export class UsageMeterComponent implements Component {
 	private autoCompactEnabled = true;
 
-	private declare session: AgentSession;
+	declare private session: AgentSession;
 
 	constructor(session: AgentSession) {
 		this.session = session;
@@ -232,9 +232,9 @@ export class UsageMeterComponent implements Component {
  * when idle, or one semantic dot with short recovery copy while work is live.
  */
 export class FooterComponent implements Component {
-	private declare session: AgentSession;
-	private declare footerData: ReadonlyFooterDataProvider;
-	private declare readonly renderStyle: FooterRenderStyle;
+	declare private session: AgentSession;
+	declare private footerData: ReadonlyFooterDataProvider;
+	declare private readonly renderStyle: FooterRenderStyle;
 	private readonly navigationActive: () => boolean;
 	private branchCwd: string | undefined;
 	private releaseBranch: (() => void) | undefined;

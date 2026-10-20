@@ -6,7 +6,7 @@ import { test } from "vitest";
 import { RpcClient } from "../../packages/coding-agent/src/modes/rpc/rpc-client.ts";
 import { bunExecutable, moduleDir, sleep, spawnSyncCollect } from "../helpers/runtime.js";
 
-const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
+const serialTest = process.platform === "win32" ? test.skip : test;
 /** Real Bun CLI startup, engine binding, signal handling, and bounded process-tree teardown. */
 const REAL_CLI_ENGINE_TIMEOUT_MS = 30_000;
 /** SIGSTOP delivery is asynchronous; allow a loaded kernel to report the child stopped. */
@@ -60,6 +60,7 @@ function makeClient(agentDir: string, requestTimeoutMs: number): RpcClient {
 
 serialTest(
 	"a pending abort outlives the generic request deadline and rejects only on stop",
+	{ concurrent: false, timeout: REAL_CLI_ENGINE_TIMEOUT_MS },
 	async () => {
 		// Startup touches the trust store after engine_ready; an ambient agent dir
 		// lets parallel real-CLI tests turn that short critical section into ELOCKED.
@@ -132,5 +133,4 @@ serialTest(
 			rmSync(agentDir, { recursive: true, force: true });
 		}
 	},
-	REAL_CLI_ENGINE_TIMEOUT_MS,
 );

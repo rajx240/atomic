@@ -247,7 +247,7 @@ describe("WorkflowAttachPane post-mortem revival", () => {
 		},
 	);
 
-	test.sequential("the extension resolver preserves invalid-session reasons", async () => {
+	test("the extension resolver preserves invalid-session reasons", { concurrent: false }, async () => {
 		globalStore.clear();
 		try {
 			setupCompletedRun(globalStore, "resolver-run");

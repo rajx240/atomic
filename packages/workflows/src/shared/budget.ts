@@ -52,7 +52,7 @@ export function enforceUsageBudget(
 }
 /** A fully resolved budget. Create one only with {@link resolve_budget}. */
 class ResolvedWorkflowBudget {
-	private declare readonly brand: undefined;
+	declare private readonly brand: undefined;
 	readonly maxDurationMs: number;
 	readonly maxTokens: number;
 	readonly maxCost: number;

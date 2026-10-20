@@ -98,7 +98,7 @@ describe("ctx.tool timeoutMs", () => {
 		}
 	});
 
-	test.sequential("finishes callback activity when a signal-ignoring timed attempt settles", async () => {
+	test("finishes callback activity when a signal-ignoring timed attempt settles", { concurrent: false }, async () => {
 		const activeCallbackIds = new Set<string>();
 		setCallbackActivityReporter({
 			started: (activity) => {
