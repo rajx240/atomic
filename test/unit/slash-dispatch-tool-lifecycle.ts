@@ -62,7 +62,7 @@ describe("tool run-control actions", () => {
 		assert.equal(wasDispatched(), false);
 		assert.match((result as { error?: string }).error ?? "", /workflows cannot invoke workflows/);
 	}
-	test.sequential("workflow tool answers ctx.ui.input prompts on running workflows", async () => {
+	test("workflow tool answers ctx.ui.input prompts on running workflows", { concurrent: false }, async () => {
 		const def = workflow({
 			name: "tool-answers-ctx-ui-input",
 			description: "",
@@ -119,7 +119,9 @@ describe("tool run-control actions", () => {
 		assert.deepEqual(completed?.result, { answer: "from workflow tool" });
 	});
 
-	test.sequential("registered workflow tool content defaults to path-only transcripts and supports explicit previews", async () => {
+	test("registered workflow tool content defaults to path-only transcripts and supports explicit previews", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`tool-content-transcript-${Date.now()}`);
 		const longText = `start-${"x".repeat(180)}-sentinel-end`;
 		const toolOutput = `tool-output-${"y".repeat(120)}-sentinel-end`;

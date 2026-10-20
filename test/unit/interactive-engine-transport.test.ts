@@ -255,7 +255,7 @@ test("chat-error policy: watchdog diagnostics stay internal while concrete failu
 	);
 });
 
-test.sequential("synchronous callback publishes activity before entering user code", () => {
+test("synchronous callback publishes activity before entering user code", { concurrent: false }, () => {
 	let started = false;
 	setCallbackActivityReporter({
 		started: () => {

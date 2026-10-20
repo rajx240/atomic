@@ -24,8 +24,9 @@ import {
 installSlashDispatchTestHooks();
 
 describe("/workflow run-control chat commands", () => {
-	test.sequential.each([["completed"], ["failed"], ["killed"]] as const)(
+	test.each([["completed"], ["failed"], ["killed"]] as const)(
 		"top-level /workflow quit <id> leaves %s terminal runs unchanged",
+		{ concurrent: false },
 		async (status) => {
 			const runId =
 				status === "completed"
@@ -54,7 +55,9 @@ describe("/workflow run-control chat commands", () => {
 		},
 	);
 
-	test.sequential("/workflow connect no-custom-UI fallback includes older retained terminal runs", async () => {
+	test("/workflow connect no-custom-UI fallback includes older retained terminal runs", {
+		concurrent: false,
+	}, async () => {
 		const oldEndedAt = Date.now() - 2 * 60 * 60 * 1000;
 		recordTerminalRun("old-connect-terminal-run", "completed", {
 			name: "old-connect-terminal",
@@ -72,7 +75,9 @@ describe("/workflow run-control chat commands", () => {
 		assert.match(joined, /Picker requires an interactive UI surface/);
 	});
 
-	test.sequential("/workflow attach no-custom-UI fallback includes older retained terminal runs", async () => {
+	test("/workflow attach no-custom-UI fallback includes older retained terminal runs", {
+		concurrent: false,
+	}, async () => {
 		const oldEndedAt = Date.now() - 2 * 60 * 60 * 1000;
 		recordTerminalRun("old-attach-terminal-run", "failed", {
 			name: "old-attach-terminal",
@@ -90,7 +95,9 @@ describe("/workflow run-control chat commands", () => {
 		assert.match(joined, /Picker requires an interactive UI surface/);
 	});
 
-	test.sequential("top-level /workflow quit <id> pauses and preserves resumability without confirmation", async () => {
+	test("top-level /workflow quit <id> pauses and preserves resumability without confirmation", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`quit-chat-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		registerTestStageHandle(runId, "quit-stage");
@@ -137,7 +144,9 @@ describe("/workflow run-control chat commands", () => {
 		);
 	});
 
-	test.sequential("top-level /workflow quit without a controllable stage reports that the run remains active", async () => {
+	test("top-level /workflow quit without a controllable stage reports that the run remains active", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`quit-no-control-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		const { workflowCmd } = await registerWorkflowCommand();
@@ -150,7 +159,7 @@ describe("/workflow run-control chat commands", () => {
 		assert.doesNotMatch(messages.join("\n"), /Run not found/i);
 	});
 
-	test.sequential("top-level /workflow quit --all reports mixed no-controller failures", async () => {
+	test("top-level /workflow quit --all reports mixed no-controller failures", { concurrent: false }, async () => {
 		const controllable = `quit-slash-mixed-ok-${Date.now()}`;
 		const noController = `quit-slash-mixed-no-controller-${Date.now()}`;
 		store.recordRunStart(makeInflightRun(controllable));
@@ -180,7 +189,9 @@ describe("/workflow run-control chat commands", () => {
 		assert.equal(store.runs().find((run) => run.id === noController)?.status, "running");
 	});
 
-	test.sequential("top-level /workflow pause --all reports a run whose pause throws alongside a paused run (#3377)", async () => {
+	test("top-level /workflow pause --all reports a run whose pause throws alongside a paused run (#3377)", {
+		concurrent: false,
+	}, async () => {
 		const pausable = testRunId(`pause-slash-mixed-ok-${Date.now()}`);
 		const refusing = testRunId(`pause-slash-mixed-refusing-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(pausable));
@@ -212,7 +223,9 @@ describe("/workflow run-control chat commands", () => {
 		assert.deepEqual(levels, ["info"]);
 	});
 
-	test.sequential("top-level /workflow pause --all reports an error naming the run when every pause throws (#3377)", async () => {
+	test("top-level /workflow pause --all reports an error naming the run when every pause throws (#3377)", {
+		concurrent: false,
+	}, async () => {
 		const refusing = testRunId(`pause-slash-refusing-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(refusing));
 		registerTestStageHandle(refusing, "pause-stage", "running", {
@@ -241,7 +254,9 @@ describe("/workflow run-control chat commands", () => {
 		assert.deepEqual(levels, ["error"]);
 	});
 
-	test.sequential("top-level /workflow pause --all does not report an already paused run as a failure (#3377)", async () => {
+	test("top-level /workflow pause --all does not report an already paused run as a failure (#3377)", {
+		concurrent: false,
+	}, async () => {
 		const alreadyPaused = testRunId(`pause-slash-already-paused-${Date.now()}`);
 		const pausable = testRunId(`pause-slash-newly-paused-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(alreadyPaused));
@@ -267,7 +282,9 @@ describe("/workflow run-control chat commands", () => {
 		assert.deepEqual(levels, ["info"]);
 	});
 
-	test.sequential("top-level /workflow pause --all reports an error when it stopped nothing beside an already paused run (#3377)", async () => {
+	test("top-level /workflow pause --all reports an error when it stopped nothing beside an already paused run (#3377)", {
+		concurrent: false,
+	}, async () => {
 		const alreadyPaused = testRunId(`pause-slash-paused-beside-stuck-${Date.now()}`);
 		const noController = testRunId(`pause-slash-stuck-beside-paused-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(alreadyPaused));
@@ -295,7 +312,9 @@ describe("/workflow run-control chat commands", () => {
 		assert.equal(store.runs().find((run) => run.id === noController)?.status, "running");
 	});
 
-	test.sequential("top-level /workflow quit --all reports info when it quits an already paused run beside a stuck run (#3377)", async () => {
+	test("top-level /workflow quit --all reports info when it quits an already paused run beside a stuck run (#3377)", {
+		concurrent: false,
+	}, async () => {
 		const alreadyPaused = testRunId(`quit-slash-paused-beside-stuck-${Date.now()}`);
 		const noController = testRunId(`quit-slash-stuck-beside-paused-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(alreadyPaused));
@@ -323,7 +342,9 @@ describe("/workflow run-control chat commands", () => {
 		assert.equal(store.runs().find((run) => run.id === noController)?.status, "running");
 	});
 
-	test.sequential("top-level /workflow pause --all treats only already paused runs as a benign no-op (#3377)", async () => {
+	test("top-level /workflow pause --all treats only already paused runs as a benign no-op (#3377)", {
+		concurrent: false,
+	}, async () => {
 		const alreadyPaused = testRunId(`pause-slash-only-paused-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(alreadyPaused));
 		store.recordRunPaused(alreadyPaused);
@@ -346,7 +367,9 @@ describe("/workflow run-control chat commands", () => {
 		assert.deepEqual(levels, ["info"]);
 	});
 
-	test.sequential("top-level /workflow pause --all treats a paused run with a stage awaiting input as already paused (#3377)", async () => {
+	test("top-level /workflow pause --all treats a paused run with a stage awaiting input as already paused (#3377)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`pause-slash-paused-awaiting-input-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
@@ -388,7 +411,7 @@ describe("/workflow run-control chat commands", () => {
 		assert.deepEqual(levels, ["info"]);
 	});
 
-	test.sequential.each([
+	test.each([
 		["-y <id>", "-y"],
 		["--yes <id>", "--yes"],
 		["<id> -y", "-y"],
@@ -399,6 +422,7 @@ describe("/workflow run-control chat commands", () => {
 		["--yes --all", "--yes"],
 	])(
 		"top-level /workflow quit %s rejects yes compatibility as an ordinary unsupported target",
+		{ concurrent: false },
 		async (argsTemplate, unsupportedToken) => {
 			const runId = testRunId(`quit-unsupported-confirmation-${unsupportedToken}-${Date.now()}`);
 			store.recordRunStart(makeInflightRun(runId));
@@ -415,7 +439,7 @@ describe("/workflow run-control chat commands", () => {
 		},
 	);
 
-	test.sequential("top-level /workflow quit without an id defaults to the active run", async () => {
+	test("top-level /workflow quit without an id defaults to the active run", { concurrent: false }, async () => {
 		const runId = testRunId(`quit-active-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		registerTestStageHandle(runId, "quit-stage");
@@ -434,7 +458,7 @@ describe("/workflow run-control chat commands", () => {
 		);
 	});
 
-	test.sequential("removed /workflow kill is not a compatibility alias for quit", async () => {
+	test("removed /workflow kill is not a compatibility alias for quit", { concurrent: false }, async () => {
 		const runId = testRunId(`removed-kill-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		const { workflowCmd } = await registerWorkflowCommand();
@@ -452,7 +476,7 @@ describe("/workflow run-control chat commands", () => {
 		);
 	});
 
-	test.sequential("top-level /workflow pause defaults to the active run", async () => {
+	test("top-level /workflow pause defaults to the active run", { concurrent: false }, async () => {
 		const runId = testRunId(`pause-active-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 
@@ -483,7 +507,9 @@ describe("/workflow run-control chat commands", () => {
 		);
 	});
 
-	test.sequential("top-level /workflow pause <id> reports no active stages without confirmation", async () => {
+	test("top-level /workflow pause <id> reports no active stages without confirmation", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`pause-chat-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 
@@ -519,7 +545,7 @@ describe("/workflow run-control chat commands", () => {
 		);
 	});
 
-	test.sequential("removed /workflow interrupt cannot control a live run", async () => {
+	test("removed /workflow interrupt cannot control a live run", { concurrent: false }, async () => {
 		const runId = testRunId("removed-interrupt");
 		store.recordRunStart(makeInflightRun(runId));
 		registerTestStageHandle(runId, "worker");
@@ -530,43 +556,48 @@ describe("/workflow run-control chat commands", () => {
 		assert.equal(store.runs().find((run) => run.id === runId)?.status, "running");
 	});
 
-	test.sequential.each([
+	test.each([
 		[false, false],
 		[false, true],
 		[true, false],
 		[true, true],
-	])("pause confirmation and extra-token handling: all=%s confirmed=%s", async (all, confirmed) => {
-		const runId = testRunId(`pause-confirm-${all}-${confirmed}`);
-		store.recordRunStart(makeInflightRun(runId));
-		registerTestStageHandle(runId, "worker");
-		const { handleRunControlCommand } = await import(
-			"../../packages/workflows/src/extension/workflow-run-control-command.js"
-		);
-		const { ctx, messages } = buildCtx();
-		const confirmations: string[] = [];
-		ctx.ui.confirm = async (title) => {
-			confirmations.push(title);
-			return confirmed;
-		};
-		ctx.ui.custom = async () => {
-			throw new Error("pause must not open a stage picker");
-		};
-		const target = all ? "--all" : runId;
-		await handleRunControlCommand(
-			"pause",
-			[target, "nonexistent-stage", "extra-token"],
-			ctx,
-			{ info: (message) => messages.push(message), error: (message) => messages.push(message) },
-			{} as never,
-		);
-		assert.equal(confirmations.length, 1);
-		assert.match(confirmations[0], all ? /Pause all 1 in-flight workflow runs/ : /Pause workflow run/);
-		assert.equal(store.runs().find((run) => run.id === runId)?.status, confirmed ? "paused" : "running");
-		assert.match(messages.join("\n"), confirmed ? /paused/i : /Cancelled/);
-	});
+	])(
+		"pause confirmation and extra-token handling: all=%s confirmed=%s",
+		{ concurrent: false },
+		async (all, confirmed) => {
+			const runId = testRunId(`pause-confirm-${all}-${confirmed}`);
+			store.recordRunStart(makeInflightRun(runId));
+			registerTestStageHandle(runId, "worker");
+			const { handleRunControlCommand } = await import(
+				"../../packages/workflows/src/extension/workflow-run-control-command.js"
+			);
+			const { ctx, messages } = buildCtx();
+			const confirmations: string[] = [];
+			ctx.ui.confirm = async (title) => {
+				confirmations.push(title);
+				return confirmed;
+			};
+			ctx.ui.custom = async () => {
+				throw new Error("pause must not open a stage picker");
+			};
+			const target = all ? "--all" : runId;
+			await handleRunControlCommand(
+				"pause",
+				[target, "nonexistent-stage", "extra-token"],
+				ctx,
+				{ info: (message) => messages.push(message), error: (message) => messages.push(message) },
+				{} as never,
+			);
+			assert.equal(confirmations.length, 1);
+			assert.match(confirmations[0], all ? /Pause all 1 in-flight workflow runs/ : /Pause workflow run/);
+			assert.equal(store.runs().find((run) => run.id === runId)?.status, confirmed ? "paused" : "running");
+			assert.match(messages.join("\n"), confirmed ? /paused/i : /Cancelled/);
+		},
+	);
 
-	test.sequential.each(["", "-y", "--yes"])(
+	test.each(["", "-y", "--yes"])(
 		"top-level pause %s implicitly confirms and ignores extra stage tokens",
+		{ concurrent: false },
 		async (flag) => {
 			const runId = testRunId(`pause-yes-${flag}`);
 			store.recordRunStart(makeInflightRun(runId));
@@ -581,7 +612,7 @@ describe("/workflow run-control chat commands", () => {
 		},
 	);
 
-	test.sequential("top-level /workflow reload stays available while workflows are in flight", async () => {
+	test("top-level /workflow reload stays available while workflows are in flight", { concurrent: false }, async () => {
 		const runId = testRunId(`reload-slash-inflight-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 
@@ -603,7 +634,7 @@ describe("/workflow run-control chat commands", () => {
 		assert.equal(store.runs().find((run) => run.id === runId)?.endedAt, undefined);
 	});
 
-	test.sequential("top-level /workflow reload reports reload failures", async () => {
+	test("top-level /workflow reload reports reload failures", { concurrent: false }, async () => {
 		const { pi, commands } = buildMockPi();
 		addFactoryStubs(pi);
 		pi.refreshWorkflowResources = async () => {
@@ -624,7 +655,9 @@ describe("/workflow run-control chat commands", () => {
 		);
 	});
 
-	test.sequential("top-level /workflow reload refreshes package workflow resources before discovery", async () => {
+	test("top-level /workflow reload refreshes package workflow resources before discovery", {
+		concurrent: false,
+	}, async () => {
 		const dir = await mkdtemp(join(tmpdir(), "atomic-workflow-refresh-"));
 		try {
 			const existingWorkflow = join(dir, "existing.ts");
@@ -667,7 +700,7 @@ describe("/workflow run-control chat commands", () => {
 		}
 	});
 
-	test.sequential("exact slash status recognizes a live task tail", async () => {
+	test("exact slash status recognizes a live task tail", { concurrent: false }, async () => {
 		const { TASK_RESULT_CHECKPOINT_CONTROL_PREFIX } = await import(
 			"../../packages/workflows/src/durable/stage-primitive.js"
 		);

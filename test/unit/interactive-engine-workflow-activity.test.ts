@@ -102,53 +102,51 @@ function hostRuntimeOver(client: RpcClient): AgentSessionRuntime {
 	}) as unknown as AgentSessionRuntime;
 }
 
-test.sequential(
-	"a host attached after the engine published its workflow snapshot starts from the current one (#3556)",
-	async () => {
-		const tempDir = mkdtempSync(join(tmpdir(), "atomic-engine-workflow-activity-"));
-		const client = createClient(tempDir);
-		try {
-			const published = workflowActivityPublished(client);
-			await client.start();
-			await published;
-			const observed: WorkflowActivityFrame[] = [];
-			const detach = attachHost(client, observed);
-			assert.equal(observed.length, 1, "the late host is handed exactly one snapshot on attach");
-			assert.equal(observed[0]?.kind, "snapshot");
-			detach();
-		} finally {
-			await client.stop();
-			rmSync(tempDir, { recursive: true, force: true });
-		}
-	},
-	REAL_ENGINE_TEST_TIMEOUT_MS,
-);
+test("a host attached after the engine published its workflow snapshot starts from the current one (#3556)", {
+	concurrent: false,
+	timeout: REAL_ENGINE_TEST_TIMEOUT_MS,
+}, async () => {
+	const tempDir = mkdtempSync(join(tmpdir(), "atomic-engine-workflow-activity-"));
+	const client = createClient(tempDir);
+	try {
+		const published = workflowActivityPublished(client);
+		await client.start();
+		await published;
+		const observed: WorkflowActivityFrame[] = [];
+		const detach = attachHost(client, observed);
+		assert.equal(observed.length, 1, "the late host is handed exactly one snapshot on attach");
+		assert.equal(observed[0]?.kind, "snapshot");
+		detach();
+	} finally {
+		await client.stop();
+		rmSync(tempDir, { recursive: true, force: true });
+	}
+});
 
-test.sequential(
-	"a dead engine generation's workflow activity is not replayed to a late host (#3556)",
-	async () => {
-		const tempDir = mkdtempSync(join(tmpdir(), "atomic-engine-workflow-activity-"));
-		const client = createClient(tempDir);
-		try {
-			const published = workflowActivityPublished(client);
-			await client.start();
-			await published;
-			const pid = client.getEnginePid();
-			assert.ok(pid !== undefined, "the engine child reported its pid");
-			process.kill(pid, "SIGKILL");
-			await waitForRetainedGenerationEnd(client);
-			const observed: WorkflowActivityFrame[] = [];
-			const detach = attachHost(client, observed);
-			assert.deepEqual(
-				observed.map((frame) => frame.kind === "snapshot" && frame.availability),
-				["unavailable"],
-				"a late host learns the engine is gone, so a stale working cannot stick",
-			);
-			detach();
-		} finally {
-			await client.stop();
-			rmSync(tempDir, { recursive: true, force: true });
-		}
-	},
-	REAL_ENGINE_TEST_TIMEOUT_MS,
-);
+test("a dead engine generation's workflow activity is not replayed to a late host (#3556)", {
+	concurrent: false,
+	timeout: REAL_ENGINE_TEST_TIMEOUT_MS,
+}, async () => {
+	const tempDir = mkdtempSync(join(tmpdir(), "atomic-engine-workflow-activity-"));
+	const client = createClient(tempDir);
+	try {
+		const published = workflowActivityPublished(client);
+		await client.start();
+		await published;
+		const pid = client.getEnginePid();
+		assert.ok(pid !== undefined, "the engine child reported its pid");
+		process.kill(pid, "SIGKILL");
+		await waitForRetainedGenerationEnd(client);
+		const observed: WorkflowActivityFrame[] = [];
+		const detach = attachHost(client, observed);
+		assert.deepEqual(
+			observed.map((frame) => frame.kind === "snapshot" && frame.availability),
+			["unavailable"],
+			"a late host learns the engine is gone, so a stale working cannot stick",
+		);
+		detach();
+	} finally {
+		await client.stop();
+		rmSync(tempDir, { recursive: true, force: true });
+	}
+});

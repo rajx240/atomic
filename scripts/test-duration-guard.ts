@@ -7,7 +7,7 @@
  * that signal, so this module reads vitest's JSON reporter, resolves each test's
  * effective timeout, and reports the tests closest to their budget.
  *
- * Timeout resolution mirrors vitest's own precedence: an explicit third argument
+ * Timeout resolution mirrors vitest's own precedence: an explicit options.timeout or third argument
  * on the declaration wins, otherwise the project's resolved `testTimeout`
  * applies. When no budget can be resolved from the command the gate stays
  * disabled and only the duration table is emitted -- a suite that never declared
@@ -23,7 +23,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, isAbsolute, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { parseExpression } from "@babel/parser";
+import { parse, parseExpression } from "@babel/parser";
+import type { Node } from "@babel/types";
 
 /** Emit a warning once a test consumes this share of its effective timeout. */
 export const WARN_RATIO = 0.4;
@@ -287,6 +288,58 @@ export function declaredTimeouts(source: string): Map<string, number> {
 			for (const name of names) record([...describeScopes(lines, back, tail.indent), name].join(" > "), value);
 			break;
 		}
+	}
+	// Vitest 5 places explicit budgets in the second-argument options object.
+	// Parse only recognized declarations, never evaluate option expressions.
+	try {
+		const visit = (value: unknown): void => {
+			if (!value || typeof value !== "object" || !("type" in value)) return;
+			const node = value as Node;
+			if (node.type === "CallExpression" && node.loc && node.start != null && node.end != null) {
+				const index = node.loc.start.line - 1;
+				const opener = declaration.exec(lines[index] as string);
+				const options = node.arguments[1];
+				if (
+					opener &&
+					node.loc.start.column === (opener[1] as string).length &&
+					options?.type === "ObjectExpression"
+				) {
+					const safeProperties = options.properties.every(
+						(entry) =>
+							entry.type === "ObjectProperty" &&
+							!entry.computed &&
+							(entry.key.type === "Identifier" || entry.key.type === "StringLiteral"),
+					);
+					const timeoutProperties = options.properties.filter(
+						(entry) =>
+							entry.type === "ObjectProperty" &&
+							!entry.computed &&
+							((entry.key.type === "Identifier" && entry.key.name === "timeout") ||
+								(entry.key.type === "StringLiteral" && entry.key.value === "timeout")),
+					);
+					const property = safeProperties && timeoutProperties.length === 1 ? timeoutProperties[0] : undefined;
+					if (property?.type === "ObjectProperty" && property.value.start != null && property.value.end != null) {
+						const budget = timeoutValue(source.slice(property.value.start, property.value.end), constants);
+						const title = node.arguments[0];
+						const names = opener.groups?.each
+							? tableTestNames(source.slice(node.start, node.end))
+							: title?.type === "StringLiteral"
+								? [title.value]
+								: [];
+						if (budget !== undefined)
+							for (const name of names)
+								record([...describeScopes(lines, index, opener[1] as string), name].join(" > "), budget);
+					}
+				}
+			}
+			for (const child of Object.values(node)) {
+				if (Array.isArray(child)) child.forEach(visit);
+				else visit(child);
+			}
+		};
+		visit(parse(source, { sourceType: "module", plugins: ["typescript"] }));
+	} catch {
+		// Unsupported syntax keeps the conservative default budget.
 	}
 	return declared;
 }

@@ -70,8 +70,8 @@ export interface AuthStorageBackend {
 }
 
 export class FileAuthStorageBackend implements AuthStorageBackend {
-	private declare authPath: string;
-	private declare readPaths: string[];
+	declare private authPath: string;
+	declare private readPaths: string[];
 
 	constructor(authPath: string = join(getAgentDir(), "auth.json"), readPaths: string[] = [authPath]) {
 		this.authPath = normalizePath(authPath);

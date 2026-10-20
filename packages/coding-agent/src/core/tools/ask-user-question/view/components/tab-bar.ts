@@ -19,7 +19,7 @@ export interface TabBarProps {
 export class TabBar implements StatefulView<TabBarProps> {
 	private props: TabBarProps;
 
-	private declare readonly theme: Theme;
+	declare private readonly theme: Theme;
 
 	constructor(theme: Theme) {
 		this.theme = theme;

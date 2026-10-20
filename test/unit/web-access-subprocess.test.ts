@@ -146,7 +146,7 @@ test("Bun subprocess execution maps spawn ENOENT and non-zero exits with stderr"
 	);
 });
 
-test.sequential("video and YouTube command paths use asynchronous Bun subprocesses", async () => {
+test("video and YouTube command paths use asynchronous Bun subprocesses", { concurrent: false }, async () => {
 	if (process.platform === "win32") return;
 	const bin = mkdtempSync(join(tmpdir(), "atomic-web-bin-"));
 	const previousPath = process.env.PATH;

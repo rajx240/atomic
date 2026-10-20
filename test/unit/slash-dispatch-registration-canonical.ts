@@ -16,7 +16,7 @@ import {
 installSlashDispatchTestHooks();
 
 describe("/workflow <name> --help prints schema without dispatching", () => {
-	test.sequential("--help token short-circuits to the schema printer", async () => {
+	test("--help token short-circuits to the schema printer", { concurrent: false }, async () => {
 		const { pi, commands, sent } = buildMockPi();
 		await runFactory(pi);
 
@@ -80,13 +80,13 @@ describe("canonical registerCommand — opts.handler shape", () => {
 		return { commands, sent };
 	}
 
-	test.sequential("registerCommand receives string name 'workflow'", async () => {
+	test("registerCommand receives string name 'workflow'", { concurrent: false }, async () => {
 		const { commands } = await runFactoryRaw();
 		const names = commands.map((c) => c.name);
 		assert.ok(names.includes("workflow"));
 	});
 
-	test.sequential("registerCommand does not receive per-workflow alias names", async () => {
+	test("registerCommand does not receive per-workflow alias names", { concurrent: false }, async () => {
 		const { commands } = await runFactoryRaw();
 		const names = commands.map((c) => c.name);
 		assert.equal(
@@ -95,28 +95,28 @@ describe("canonical registerCommand — opts.handler shape", () => {
 		);
 	});
 
-	test.sequential("opts passed to registerCommand have 'handler' (function)", async () => {
+	test("opts passed to registerCommand have 'handler' (function)", { concurrent: false }, async () => {
 		const { commands } = await runFactoryRaw();
 		for (const { name, options } of commands) {
 			assert.equal(typeof options.handler, "function", `${name}: handler should be function`);
 		}
 	});
 
-	test.sequential("opts passed to registerCommand do NOT have 'execute' property", async () => {
+	test("opts passed to registerCommand do NOT have 'execute' property", { concurrent: false }, async () => {
 		const { commands } = await runFactoryRaw();
 		for (const { name, options } of commands) {
 			assert.equal(Object.hasOwn(options, "execute"), false, `${name}: opts must not have execute — use handler`);
 		}
 	});
 
-	test.sequential("opts have 'description' string", async () => {
+	test("opts have 'description' string", { concurrent: false }, async () => {
 		const { commands } = await runFactoryRaw();
 		for (const { name, options } of commands) {
 			assert.equal(typeof options.description, "string", `${name}: description should be string`);
 		}
 	});
 
-	test.sequential("handler for 'workflow' is callable — does not throw synchronously", async () => {
+	test("handler for 'workflow' is callable — does not throw synchronously", { concurrent: false }, async () => {
 		const { commands, sent } = await runFactoryRaw();
 		const workflowCmd = commands.find((c) => c.name === "workflow");
 		assert.notEqual(workflowCmd, undefined);

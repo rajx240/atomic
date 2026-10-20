@@ -14,7 +14,7 @@ import {
 	spawnProcess,
 } from "../helpers/runtime.js";
 
-const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
+const serialTest = process.platform === "win32" ? test.skip : test;
 const PREFIX = "@@ATOMIC_TEST@@";
 const REAL_EXTENSION_FALLBACK_TEST_TIMEOUT_MS = 120_000;
 const ISOLATED_ENGINE_REPORT_TIMEOUT_MS = 30_000;
@@ -136,6 +136,7 @@ async function waitForInputLoopState(driver: Driver, from = 0): Promise<HarnessR
 
 serialTest(
 	"isolated interactive startup replaces preliminary fallback with extension-aware engine state",
+	{ concurrent: false, timeout: REAL_EXTENSION_FALLBACK_TEST_TIMEOUT_MS },
 	async () => {
 		const root = mkdtempSync(join(tmpdir(), "atomic-extension-default-fallback-"));
 		const agentDir = join(root, "agent");
@@ -192,11 +193,11 @@ serialTest(
 			rmSync(root, { recursive: true, force: true });
 		}
 	},
-	REAL_EXTENSION_FALLBACK_TEST_TIMEOUT_MS,
 );
 
 serialTest(
 	"isolated interactive startup resolves a settings-configured extension provider default",
+	{ concurrent: false, timeout: REAL_EXTENSION_FALLBACK_TEST_TIMEOUT_MS },
 	async () => {
 		const root = mkdtempSync(join(tmpdir(), "atomic-settings-extension-default-"));
 		const agentDir = join(root, "agent");
@@ -231,11 +232,11 @@ serialTest(
 			rmSync(root, { recursive: true, force: true });
 		}
 	},
-	REAL_EXTENSION_FALLBACK_TEST_TIMEOUT_MS,
 );
 
 serialTest(
 	"isolated interactive persisted stale state shows one generic warning and remains live",
+	{ concurrent: false, timeout: REAL_EXTENSION_FALLBACK_TEST_TIMEOUT_MS },
 	async () => {
 		const root = mkdtempSync(join(tmpdir(), "atomic-persisted-stale-interactive-"));
 		const cwd = join(root, "cwd");
@@ -329,5 +330,4 @@ serialTest(
 			rmSync(root, { recursive: true, force: true });
 		}
 	},
-	REAL_EXTENSION_FALLBACK_TEST_TIMEOUT_MS,
 );

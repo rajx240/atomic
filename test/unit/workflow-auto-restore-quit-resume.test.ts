@@ -184,8 +184,9 @@ afterEach(async () => {
 });
 
 describe("gracefully quit durable workflow session restore", () => {
-	test.sequential.each(["paused", "running"] as const)(
+	test.each(["paused", "running"] as const)(
 		"slash resume recovers authoritative durable %s shadow with the original workflow id",
+		{ concurrent: false },
 		async (durableStatus) => {
 			const workflowId = testRunId(`slash-restored-${durableStatus}`);
 			const backend = await createMemoryTestBackend();
@@ -226,8 +227,9 @@ describe("gracefully quit durable workflow session restore", () => {
 		},
 	);
 
-	test.sequential.each(["paused", "running"] as const)(
+	test.each(["paused", "running"] as const)(
 		"workflow tool resume recovers authoritative durable %s shadow with the original workflow id",
+		{ concurrent: false },
 		async (durableStatus) => {
 			const workflowId = testRunId(`tool-restored-${durableStatus}`);
 			const backend = await createMemoryTestBackend();
@@ -257,43 +259,47 @@ describe("gracefully quit durable workflow session restore", () => {
 		},
 	);
 
-	test.sequential.each([
+	test.each([
 		["exact id", (workflowId: string) => workflowId],
 		["short prefix rejected", (workflowId: string) => workflowId.slice(0, 18)],
-	] as const)("workflow tool resume rejects unsupported durable-only truncations", async (_label, selectTarget) => {
-		const workflowId = testRunId(`tool-durable-only-${Date.now()}`);
-		const backend = await createMemoryTestBackend();
-		setDurableBackend(backend);
-		await seedDurableOnly(backend, workflowId);
-		assert.deepEqual(store.runs(), []);
-		const release = Promise.withResolvers<void>();
-		const execute = makeExecuteWorkflowTool(
-			resumableRuntime(release.promise),
-			() => undefined,
-			() => undefined,
-		);
+	] as const)(
+		"workflow tool resume rejects unsupported durable-only truncations",
+		{ concurrent: false },
+		async (_label, selectTarget) => {
+			const workflowId = testRunId(`tool-durable-only-${Date.now()}`);
+			const backend = await createMemoryTestBackend();
+			setDurableBackend(backend);
+			await seedDurableOnly(backend, workflowId);
+			assert.deepEqual(store.runs(), []);
+			const release = Promise.withResolvers<void>();
+			const execute = makeExecuteWorkflowTool(
+				resumableRuntime(release.promise),
+				() => undefined,
+				() => undefined,
+			);
 
-		const target = selectTarget(workflowId);
-		const result = await execute({ action: "resume", runId: target }, {} as never);
+			const target = selectTarget(workflowId);
+			const result = await execute({ action: "resume", runId: target }, {} as never);
 
-		assert.equal(result.action, "resume");
-		if (target !== workflowId) {
-			assert.equal(result.status, "noop");
-			assert.match(result.message, /Run id must be a full 36-character UUID/);
-			assert.equal(jobTracker.has(workflowId), false);
-			return;
-		}
-		assert.equal(result.runId, workflowId);
-		assert.equal(result.status, "running");
-		assert.match(result.message, /Resuming durable workflow/);
-		const resumedJob = jobTracker.get(workflowId);
-		assert.ok(resumedJob, "durable-only resume must dispatch under the original workflow id");
-		assert.equal(store.runs().filter((run) => run.id === workflowId).length, 1);
-		release.resolve();
-		await resumedJob.promise;
-	});
+			assert.equal(result.action, "resume");
+			if (target !== workflowId) {
+				assert.equal(result.status, "noop");
+				assert.match(result.message, /Run id must be a full 36-character UUID/);
+				assert.equal(jobTracker.has(workflowId), false);
+				return;
+			}
+			assert.equal(result.runId, workflowId);
+			assert.equal(result.status, "running");
+			assert.match(result.message, /Resuming durable workflow/);
+			const resumedJob = jobTracker.get(workflowId);
+			assert.ok(resumedJob, "durable-only resume must dispatch under the original workflow id");
+			assert.equal(store.runs().filter((run) => run.id === workflowId).length, 1);
+			release.resolve();
+			await resumedJob.promise;
+		},
+	);
 
-	test.sequential("workflow tool rejects a shared durable-only prefix", async () => {
+	test("workflow tool rejects a shared durable-only prefix", { concurrent: false }, async () => {
 		const firstId = testRunId(`tool-durable-ambiguous-${Date.now()}-alpha`);
 		const secondId = `${firstId.slice(0, 8)}-${testRunId(`tool-durable-ambiguous-${Date.now()}-beta`).slice(9)}`;
 		const prefix = firstId.slice(0, 8);
@@ -321,7 +327,7 @@ describe("gracefully quit durable workflow session restore", () => {
 		}
 	});
 
-	test.sequential("workflow tool rejects a prefix shared by local and durable-only runs", async () => {
+	test("workflow tool rejects a prefix shared by local and durable-only runs", { concurrent: false }, async () => {
 		const localId = testRunId(`tool-mixed-ambiguous-${Date.now()}-local`);
 		const prefix = localId.slice(0, 8);
 		const localIds = [localId];
@@ -360,7 +366,7 @@ describe("gracefully quit durable workflow session restore", () => {
 		assert.equal(jobTracker.has(durableId), false);
 	});
 
-	test.sequential("combined resolution accepts an exact eligible live target", async () => {
+	test("combined resolution accepts an exact eligible live target", { concurrent: false }, async () => {
 		const prefix = `tool-live-filter-${Date.now()}`;
 		const liveId = testRunId(`${prefix}-paused`);
 		const terminalId = testRunId(`${prefix}-terminal`);
@@ -412,7 +418,9 @@ describe("gracefully quit durable workflow session restore", () => {
 		assert.equal(store.runs().find((run) => run.id === terminalId)?.status, "killed");
 	});
 
-	test.sequential("workflow tool refuses a durable-only zero-progress target without local synthesis", async () => {
+	test("workflow tool refuses a durable-only zero-progress target without local synthesis", {
+		concurrent: false,
+	}, async () => {
 		const workflowId = testRunId(`tool-durable-ineligible-${Date.now()}`);
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -433,7 +441,9 @@ describe("gracefully quit durable workflow session restore", () => {
 		assert.equal(backend.getWorkflow(workflowId)?.status, "paused");
 	});
 
-	test.sequential("workflow tool surfaces resource loading failure before durable-only lookup", async () => {
+	test("workflow tool surfaces resource loading failure before durable-only lookup", {
+		concurrent: false,
+	}, async () => {
 		const workflowId = testRunId(`tool-durable-loader-failure-${Date.now()}`);
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -456,53 +466,58 @@ describe("gracefully quit durable workflow session restore", () => {
 		assert.equal(jobTracker.has(workflowId), false);
 	});
 
-	test.sequential.each([
+	test.each([
 		["paused", "job"],
 		["running", "job"],
 		["paused", "control"],
 		["running", "control"],
-	] as const)("durable %s snapshot is not a resume shadow while a live %s exists", async (durableStatus, liveKind) => {
-		const workflowId = testRunId(`live-${durableStatus}-${liveKind}`);
-		const backend = await createMemoryTestBackend();
-		await backend.commitWorkflowRegistration({
-			workflowId,
-			name: "restored-workflow",
-			inputs: {},
-			createdAt: 1,
-			status: durableStatus,
-		});
-		const localStore = createStore();
-		localStore.recordRunStart({
-			id: workflowId,
-			name: "restored-workflow",
-			inputs: {},
-			status: "running",
-			toolNodes: [],
-			stages: [],
-			startedAt: 1,
-		});
-		const jobs = createJobTracker();
-		const controls = createStageControlRegistry();
-		if (liveKind === "job") {
-			jobs.register({ runId: workflowId, controller: new AbortController(), promise: Promise.resolve() });
-		} else {
-			controls.register(liveControl(workflowId));
-		}
-		const run = localStore.runs().find((candidate) => candidate.id === workflowId)!;
+	] as const)(
+		"durable %s snapshot is not a resume shadow while a live %s exists",
+		{ concurrent: false },
+		async (durableStatus, liveKind) => {
+			const workflowId = testRunId(`live-${durableStatus}-${liveKind}`);
+			const backend = await createMemoryTestBackend();
+			await backend.commitWorkflowRegistration({
+				workflowId,
+				name: "restored-workflow",
+				inputs: {},
+				createdAt: 1,
+				status: durableStatus,
+			});
+			const localStore = createStore();
+			localStore.recordRunStart({
+				id: workflowId,
+				name: "restored-workflow",
+				inputs: {},
+				status: "running",
+				toolNodes: [],
+				stages: [],
+				startedAt: 1,
+			});
+			const jobs = createJobTracker();
+			const controls = createStageControlRegistry();
+			if (liveKind === "job") {
+				jobs.register({ runId: workflowId, controller: new AbortController(), promise: Promise.resolve() });
+			} else {
+				controls.register(liveControl(workflowId));
+			}
+			const run = localStore.runs().find((candidate) => candidate.id === workflowId)!;
 
-		assert.equal(
-			reconcileDurableResumeShadow(run, localStore, {
-				backend,
-				jobs,
-				stageControls: controls,
-			}),
-			false,
-		);
-		assert.equal(localStore.runs().find((candidate) => candidate.id === workflowId)?.status, "running");
-	});
+			assert.equal(
+				reconcileDurableResumeShadow(run, localStore, {
+					backend,
+					jobs,
+					stageControls: controls,
+				}),
+				false,
+			);
+			assert.equal(localStore.runs().find((candidate) => candidate.id === workflowId)?.status, "running");
+		},
+	);
 
-	test.sequential.each(["paused", "running"] as const)(
+	test.each(["paused", "running"] as const)(
 		"zero-progress durable %s orphan stays unmodified and tool resume is a noop",
+		{ concurrent: false },
 		async (durableStatus) => {
 			const workflowId = testRunId(`zero-tool-${durableStatus}`);
 			const backend = await createMemoryTestBackend();
@@ -533,8 +548,9 @@ describe("gracefully quit durable workflow session restore", () => {
 		},
 	);
 
-	test.sequential.each(["paused", "running"] as const)(
+	test.each(["paused", "running"] as const)(
 		"zero-progress durable %s orphan stays unmodified through slash resume",
+		{ concurrent: false },
 		async (durableStatus) => {
 			const workflowId = testRunId(`zero-slash-${durableStatus}`);
 			const backend = await createMemoryTestBackend();

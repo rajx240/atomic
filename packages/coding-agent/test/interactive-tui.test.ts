@@ -438,7 +438,9 @@ describe("interactive TUI renderer", () => {
 			tui.stop();
 		}
 	});
-	test.sequential("clips a real fetch_content Kitty image at the sticky dock and reuses its upload", async () => {
+	test("clips a real fetch_content Kitty image at the sticky dock and reuses its upload", {
+		concurrent: false,
+	}, async () => {
 		setCellDimensions({ widthPx: 9, heightPx: 18 });
 		setCapabilities({ images: "kitty", trueColor: true, hyperlinks: true });
 		expect(getCapabilities().images).toBe("kitty");

@@ -64,7 +64,9 @@ describe("tool run-control actions", () => {
 		assert.equal(wasDispatched(), false);
 		assert.match((result as { error?: string }).error ?? "", /workflows cannot invoke workflows/);
 	}
-	test.sequential("makeExecuteWorkflowTool reloads directly without sending a literal slash command", async () => {
+	test("makeExecuteWorkflowTool reloads directly without sending a literal slash command", {
+		concurrent: false,
+	}, async () => {
 		const registry = createRegistry([]);
 		const runtime = createExtensionRuntime({ registry });
 		let reloads = 0;
@@ -92,7 +94,9 @@ describe("tool run-control actions", () => {
 		assert.deepEqual(sent, []);
 	});
 
-	test.sequential("registered workflow tool reload refreshes package workflow resources before discovery", async () => {
+	test("registered workflow tool reload refreshes package workflow resources before discovery", {
+		concurrent: false,
+	}, async () => {
 		const dir = await mkdtemp(join(tmpdir(), "atomic-workflow-tool-refresh-"));
 		try {
 			const addedWorkflow = join(dir, "tool-refresh-added.ts");
@@ -140,7 +144,7 @@ describe("tool run-control actions", () => {
 		}
 	});
 
-	test.sequential("makeExecuteWorkflowTool treats explicit empty reload reason as omitted", async () => {
+	test("makeExecuteWorkflowTool treats explicit empty reload reason as omitted", { concurrent: false }, async () => {
 		const registry = createRegistry([]);
 		const runtime = createExtensionRuntime({ registry });
 		const handler = makeExecuteWorkflowTool(runtime, () => undefined);
@@ -157,7 +161,9 @@ describe("tool run-control actions", () => {
 		assert.equal(reload.message, "Reloaded workflow resources. 0 workflow(s), generation 0.");
 	});
 
-	test.sequential("makeExecuteWorkflowTool reload stays available while workflows are in flight", async () => {
+	test("makeExecuteWorkflowTool reload stays available while workflows are in flight", {
+		concurrent: false,
+	}, async () => {
 		const registry = createRegistry([]);
 		const runtime = createExtensionRuntime({ registry });
 		let reloads = 0;
@@ -181,7 +187,7 @@ describe("tool run-control actions", () => {
 		assert.equal(store.runs().find((run) => run.id === runId)?.endedAt, undefined);
 	});
 
-	test.sequential("makeExecuteWorkflowTool reload surfaces callback failures as noop", async () => {
+	test("makeExecuteWorkflowTool reload surfaces callback failures as noop", { concurrent: false }, async () => {
 		const registry = createRegistry([]);
 		const runtime = createExtensionRuntime({ registry });
 		const handler = makeExecuteWorkflowTool(runtime, async () => {
@@ -200,7 +206,9 @@ describe("tool run-control actions", () => {
 		assert.match(reload.message, /Reload failed: bad workflow config/);
 	});
 
-	test.sequential("makeExecuteWorkflowTool rejects run prefixes while full ids remain independently addressable", async () => {
+	test("makeExecuteWorkflowTool rejects run prefixes while full ids remain independently addressable", {
+		concurrent: false,
+	}, async () => {
 		const anchor = testRunId("ambiguous-run");
 		const firstId = `${anchor.slice(0, 24)}111111111111`;
 		const secondId = `${anchor.slice(0, 24)}222222222222`;
@@ -228,7 +236,9 @@ describe("tool run-control actions", () => {
 		}
 	});
 
-	test.sequential("makeExecuteWorkflowTool resume accepts full run ids, exact stage names, and messages", async () => {
+	test("makeExecuteWorkflowTool resume accepts full run ids, exact stage names, and messages", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`resume-tool-stage-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
@@ -262,7 +272,7 @@ describe("tool run-control actions", () => {
 		assert.match(r.message, /Snapshot available/);
 	});
 
-	test.sequential("makeExecuteWorkflowTool resume against in-flight run returns status:'ok'", async () => {
+	test("makeExecuteWorkflowTool resume against in-flight run returns status:'ok'", { concurrent: false }, async () => {
 		const runId = testRunId(`resume-tool-ok-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 
@@ -276,7 +286,9 @@ describe("tool run-control actions", () => {
 		assert.equal(r.runId, runId);
 	});
 
-	test.sequential("makeExecuteWorkflowTool rejects partial stage names but preserves exact-name ambiguity", async () => {
+	test("makeExecuteWorkflowTool rejects partial stage names but preserves exact-name ambiguity", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`resume-tool-ambiguous-stage-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		for (const stageId of ["ambiguous-stage-aaa", "ambiguous-stage-bbb"]) {

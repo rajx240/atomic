@@ -20,7 +20,7 @@ import { RESTART_CANCELLED_MESSAGE } from "../../packages/coding-agent/src/modes
 import { createHarness, type Harness } from "../../packages/coding-agent/test/suite/harness.ts";
 import { bunExecutable, moduleDir, sleep } from "../helpers/runtime.js";
 
-const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
+const serialTest = process.platform === "win32" ? test.skip : test;
 
 function isAlive(pid: number): boolean {
 	try {
@@ -147,6 +147,7 @@ test("a generation that dies after shutdown starts no replacement", async () => 
 
 serialTest(
 	"an explicit stop during a restart prevents the replacement from spawning",
+	{ concurrent: false, timeout: 60_000 },
 	async () => {
 		const client = new RpcClient({
 			cliPath: join(moduleDir(import.meta.url), "../../packages/coding-agent/src/cli.ts"),
@@ -193,11 +194,11 @@ serialTest(
 			await client.stop();
 		}
 	},
-	60_000,
 );
 
 serialTest(
 	"a second stop after restart begins still cancels the replacement",
+	{ concurrent: false, timeout: 60_000 },
 	async () => {
 		const client = createBlockingClient();
 		try {
@@ -230,11 +231,11 @@ serialTest(
 			await client.stop();
 		}
 	},
-	60_000,
 );
 
 serialTest(
 	"isolated runtime disposal leaves no child after an overlapping replacement",
+	{ concurrent: false, timeout: 60_000 },
 	async () => {
 		const harness = await createHarness();
 		const client = createBlockingClient();
@@ -269,5 +270,4 @@ serialTest(
 			harness.cleanup();
 		}
 	},
-	60_000,
 );

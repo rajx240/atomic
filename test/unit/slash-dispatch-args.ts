@@ -10,51 +10,51 @@ import {
 installSlashDispatchTestHooks();
 
 describe("parseWorkflowArgs", () => {
-	test.sequential("empty tokens → empty object", () => {
+	test("empty tokens → empty object", { concurrent: false }, () => {
 		assert.deepEqual(parseWorkflowArgs([]), {});
 	});
 
-	test.sequential("parses key=value string pairs", () => {
+	test("parses key=value string pairs", { concurrent: false }, () => {
 		assert.deepEqual(parseWorkflowArgs(["prompt=hello world"]), {
 			prompt: "hello world",
 		});
 	});
 
-	test.sequential("multiple key=value pairs", () => {
+	test("multiple key=value pairs", { concurrent: false }, () => {
 		assert.deepEqual(parseWorkflowArgs(["a=1", "b=foo"]), {
 			a: 1,
 			b: "foo",
 		});
 	});
 
-	test.sequential("JSON-typed values: number, boolean", () => {
+	test("JSON-typed values: number, boolean", { concurrent: false }, () => {
 		assert.deepEqual(parseWorkflowArgs(["count=42", "flag=true"]), {
 			count: 42,
 			flag: true,
 		});
 	});
 
-	test.sequential("value with = in it splits on first = only", () => {
+	test("value with = in it splits on first = only", { concurrent: false }, () => {
 		assert.deepEqual(parseWorkflowArgs(["url=http://x.com/a=b"]), {
 			url: "http://x.com/a=b",
 		});
 	});
 
-	test.sequential("JSON object token merged into result", () => {
+	test("JSON object token merged into result", { concurrent: false }, () => {
 		const result = parseWorkflowArgs(['{"key":"val","n":3}']);
 		assert.deepEqual(result, { key: "val", n: 3 });
 	});
 
-	test.sequential("JSON object merged with key=value", () => {
+	test("JSON object merged with key=value", { concurrent: false }, () => {
 		const result = parseWorkflowArgs(['{"a":1}', "b=two"]);
 		assert.deepEqual(result, { a: 1, b: "two" });
 	});
 
-	test.sequential("tokens without = are ignored", () => {
+	test("tokens without = are ignored", { concurrent: false }, () => {
 		assert.deepEqual(parseWorkflowArgs(["positional", "another"]), {});
 	});
 
-	test.sequential("key with empty value", () => {
+	test("key with empty value", { concurrent: false }, () => {
 		assert.deepEqual(parseWorkflowArgs(["name="]), { name: "" });
 	});
 });
@@ -64,19 +64,19 @@ describe("parseWorkflowArgs", () => {
 // ---------------------------------------------------------------------------
 
 describe("tokenizeWorkflowArgs", () => {
-	test.sequential("empty string → empty array", () => {
+	test("empty string → empty array", { concurrent: false }, () => {
 		assert.deepEqual(tokenizeWorkflowArgs(""), []);
 	});
 
-	test.sequential("whitespace-only string → empty array", () => {
+	test("whitespace-only string → empty array", { concurrent: false }, () => {
 		assert.deepEqual(tokenizeWorkflowArgs("   \t  "), []);
 	});
 
-	test.sequential("plain whitespace split for bare tokens", () => {
+	test("plain whitespace split for bare tokens", { concurrent: false }, () => {
 		assert.deepEqual(tokenizeWorkflowArgs("workflow-name a=1 b=foo"), ["workflow-name", "a=1", "b=foo"]);
 	});
 
-	test.sequential("double-quoted value preserves internal whitespace", () => {
+	test("double-quoted value preserves internal whitespace", { concurrent: false }, () => {
 		// Regression: `prompt="map the codebase"` used to split into three
 		// tokens (`prompt="map`, `the`, `codebase"`), which then rendered as
 		// `prompt=""map"` in the dispatch confirm card.
@@ -87,25 +87,25 @@ describe("tokenizeWorkflowArgs", () => {
 		]);
 	});
 
-	test.sequential("single-quoted value preserves internal whitespace", () => {
+	test("single-quoted value preserves internal whitespace", { concurrent: false }, () => {
 		assert.deepEqual(tokenizeWorkflowArgs("wf prompt='hello there' n=2"), ["wf", "prompt='hello there'", "n=2"]);
 	});
 
-	test.sequential("nested quotes of the opposite kind are treated as literal characters", () => {
+	test("nested quotes of the opposite kind are treated as literal characters", { concurrent: false }, () => {
 		assert.deepEqual(tokenizeWorkflowArgs(`wf msg="she said 'hi'"`), ["wf", `msg="she said 'hi'"`]);
 	});
 
-	test.sequential("unterminated quote is recovered as a single tail token", () => {
+	test("unterminated quote is recovered as a single tail token", { concurrent: false }, () => {
 		// The user can paste a partial value mid-typing; we never throw on
 		// their input, the downstream JSON parse just falls back to string.
 		assert.deepEqual(tokenizeWorkflowArgs('wf prompt="map the codebase'), ["wf", 'prompt="map the codebase']);
 	});
 
-	test.sequential("collapses runs of whitespace", () => {
+	test("collapses runs of whitespace", { concurrent: false }, () => {
 		assert.deepEqual(tokenizeWorkflowArgs("a   b\t\tc"), ["a", "b", "c"]);
 	});
 
-	test.sequential("end-to-end: tokenize + parse unquotes the string value", () => {
+	test("end-to-end: tokenize + parse unquotes the string value", { concurrent: false }, () => {
 		const tokens = tokenizeWorkflowArgs('fan-out-and-synthesize prompt="map the codebase" max_branches=4');
 		assert.deepEqual(tokens, ["fan-out-and-synthesize", 'prompt="map the codebase"', "max_branches=4"]);
 		assert.deepEqual(parseWorkflowArgs(tokens.slice(1)), {

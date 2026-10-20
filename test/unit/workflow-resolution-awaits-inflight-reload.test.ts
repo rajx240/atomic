@@ -73,7 +73,9 @@ function drainScheduledWork(rounds = 4): Promise<void> {
 }
 
 describe("workflow name resolution vs in-flight reload", () => {
-	test.sequential("ensureWorkflowResourcesLoaded awaits an in-flight reload and sees its registry", async () => {
+	test("ensureWorkflowResourcesLoaded awaits an in-flight reload and sees its registry", {
+		concurrent: false,
+	}, async () => {
 		const project = await makeIsolatedProject("workflow-inflight-resolution");
 		const gates: Array<() => void> = [];
 		const starts: Array<() => void> = [];
@@ -127,7 +129,9 @@ describe("workflow name resolution vs in-flight reload", () => {
 		);
 	});
 
-	test.sequential("a failed in-flight reload does not break resolution when a registry already exists", async () => {
+	test("a failed in-flight reload does not break resolution when a registry already exists", {
+		concurrent: false,
+	}, async () => {
 		await makeIsolatedProject("workflow-inflight-failure");
 		const gates: Array<() => void> = [];
 		const starts: Array<() => void> = [];
@@ -168,7 +172,7 @@ describe("workflow name resolution vs in-flight reload", () => {
 		await assert.doesNotReject(async () => ensure);
 	});
 
-	test.sequential("an explicit reload is awaited even when async discovery is disabled", async () => {
+	test("an explicit reload is awaited even when async discovery is disabled", { concurrent: false }, async () => {
 		const project = await makeIsolatedProject("workflow-inflight-disabled-discovery");
 		const gates: Array<() => void> = [];
 		const starts: Array<() => void> = [];
@@ -224,7 +228,7 @@ describe("workflow name resolution vs in-flight reload", () => {
 		);
 	});
 
-	test.sequential("disabled async discovery still never starts discovery of its own", async () => {
+	test("disabled async discovery still never starts discovery of its own", { concurrent: false }, async () => {
 		await makeIsolatedProject("workflow-disabled-discovery-no-start");
 		let refreshCalls = 0;
 		const pi = {

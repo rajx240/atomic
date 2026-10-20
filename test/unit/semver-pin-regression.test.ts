@@ -19,7 +19,7 @@ import { SettingsManager } from "../../packages/coding-agent/src/core/settings-m
 import { moduleDir, readJson } from "../helpers/runtime.js";
 
 /**
- * Contract for the semver 7.8.5 pin shared by shipped code and build tooling.
+ * Contract for the semver 7.8.5 pin used by shipped code and compatible tooling.
  * The BASELINE_* tables were measured against a real upstream 7.8.5 build;
  * they preserve prerelease, build-metadata and package-source range behavior.
  * Numeric tails after x-ranges must be rejected by the upstream 7.8.4 fix.
@@ -51,6 +51,7 @@ interface Lockfile {
 		string,
 		{
 			version: string;
+			dev?: boolean;
 			dependencies?: Record<string, string>;
 			devDependencies?: Record<string, string>;
 			optionalDependencies?: Record<string, string>;
@@ -299,7 +300,7 @@ function baselineFor<T>(table: Map<string, T>, key: string, tableName: string): 
 }
 
 describe("semver pinned at 7.8.5", () => {
-	test("every locked semver is 7.8.5 and shipped code links against the pin", async () => {
+	test("shipped code keeps the pin and only cross-spawn 6 uses its patched compatible major", async () => {
 		assert.equal(
 			requireFromTest.resolve("semver", { paths: [codingAgentDir] }),
 			requireFromTest.resolve("semver"),
@@ -309,7 +310,7 @@ describe("semver pinned at 7.8.5", () => {
 		const pinnedManifest = await readJson<Manifest>(requireFromTest.resolve("semver/package.json"));
 		assert.equal(pinnedManifest.version, PINNED_SEMVER_VERSION);
 
-		// The override keeps all copies at the pin, regardless of npm's layout.
+		// cross-spawn 6 in shx tooling requires semver 5; never allow that exception into runtime code.
 		const lockfile = await readJson<Lockfile>(join(root, "package-lock.json"));
 		assert.equal(resolvedSemverFor(lockfile, "packages/coding-agent"), PINNED_SEMVER_VERSION);
 		const resolved = Object.entries(lockfile.packages).filter(
@@ -317,7 +318,14 @@ describe("semver pinned at 7.8.5", () => {
 		);
 		assert.ok(resolved.length > 0, "package-lock.json must contain semver");
 		for (const [path, node] of resolved) {
-			assert.equal(node.version, PINNED_SEMVER_VERSION, `${path} must resolve the pin`);
+			if (path === "node_modules/execa/node_modules/semver") {
+				assert.equal(node.version, "5.7.2");
+				assert.equal(node.dev, true, "the compatible semver 5 exception must remain development-only");
+				assert.equal(lockfile.packages["node_modules/execa/node_modules/cross-spawn"]?.version, "6.0.6");
+				assert.equal(resolvedSemverFor(lockfile, "node_modules/execa/node_modules/cross-spawn"), "5.7.2");
+			} else {
+				assert.equal(node.version, PINNED_SEMVER_VERSION, `${path} must resolve the pin`);
+			}
 		}
 	});
 

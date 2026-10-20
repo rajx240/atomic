@@ -22,8 +22,8 @@ export class ExpandableText extends Text implements Expandable {
 	private contentWidth: number | undefined;
 	private readonly textPaddingX: number;
 
-	private declare readonly getCollapsedText: (width?: number) => string;
-	private declare readonly getExpandedText: (width?: number) => string;
+	declare private readonly getCollapsedText: (width?: number) => string;
+	declare private readonly getExpandedText: (width?: number) => string;
 
 	constructor(
 		getCollapsedText: (width?: number) => string,

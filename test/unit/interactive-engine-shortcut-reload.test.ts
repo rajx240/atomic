@@ -13,7 +13,7 @@ import {
 	spawnProcess,
 } from "../helpers/runtime.js";
 
-const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
+const serialTest = process.platform === "win32" ? test.skip : test;
 const PREFIX = "@@ATOMIC_TEST@@";
 const ENGINE_BIND_SCENARIO_TIMEOUT_MS = 30_000;
 const ENGINE_REPORT_TIMEOUT_MS = 30_000;
@@ -263,6 +263,7 @@ async function reloadThroughExtensionContext(
 
 serialTest(
 	"real isolated InteractiveMode refreshes remote shortcuts and preserves explicit agent-dir input/display parity",
+	{ concurrent: false, timeout: ISOLATED_INTERACTIVE_MODE_SCENARIO_TIMEOUT_MS },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-shortcut-reload-parity-"));
 		const agentDir = join(temp, "custom-agent");
@@ -325,11 +326,11 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	ISOLATED_INTERACTIVE_MODE_SCENARIO_TIMEOUT_MS,
 );
 
 serialTest(
 	"startup shortcut dispatch waits for extension binding",
+	{ concurrent: false, timeout: 12_000 },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-shortcut-gated-bind-"));
 		const agentDir = join(temp, "custom-agent");
@@ -370,7 +371,6 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	12_000,
 );
 
 // This scenario deliberately delays extension session startup by 9 s, so its
@@ -378,43 +378,48 @@ serialTest(
 // default rather than carrying an explicit budget: the former explicit 20 s was
 // below that default and left the duration-headroom guard permanently warning
 // on a cost the fixture chose on purpose.
-serialTest("post-bind shortcut readiness survives delayed extension session startup", async () => {
-	const temp = mkdtempSync(join(tmpdir(), "atomic-shortcut-delayed-bind-"));
-	const agentDir = join(temp, "custom-agent");
-	const shortcutConfig = join(temp, "shortcut.txt");
-	const shortcutLog = join(temp, "shortcut.log");
-	const keybindingsPath = join(agentDir, "keybindings.json");
-	const extension = join(moduleDir(import.meta.url), "fixtures", "blocking-tool-extension.ts");
-	mkdirSync(agentDir, { recursive: true });
-	writeFileSync(shortcutConfig, "ctrl+y");
-	writeFileSync(keybindingsPath, JSON.stringify({ "app.tools.expand": "ctrl+x" }));
-	const driver = new InteractiveModeDriver(fixtureArgs(extension), {
-		ATOMIC_CODING_AGENT_DIR: agentDir,
-		ATOMIC_KEYBINDINGS_SHORTCUT_CONFIG_FILE: shortcutConfig,
-		ATOMIC_KEYBINDINGS_SHORTCUT_LOG_FILE: shortcutLog,
-		ATOMIC_KEYBINDINGS_SESSION_START_DELAY_MS: "9000",
-	});
-	try {
-		await driver.waitFor((report) => report.type === "terminal_ready");
-		await driver.waitFor((report) => report.type === "heartbeat" && typeof report.enginePid === "number");
-		const postBindWaitStartedAt = performance.now();
-		await driver.waitUntilEngineBound("ctrl+y");
-		assert.ok(
-			performance.now() - postBindWaitStartedAt >= 7_500,
-			"semantic engine binding must outlive the former generic eight-second report budget",
-		);
-		driver.send({ type: "input", data: "\x19" });
-		const dispatchDeadline = performance.now() + 3_000;
-		while (shortcutInvocations(shortcutLog).length === 0 && performance.now() < dispatchDeadline) await sleep(20);
-		assert.deepEqual(shortcutInvocations(shortcutLog), ["ctrl+y"]);
-	} finally {
-		await driver.stop();
-		rmSync(temp, { recursive: true, force: true });
-	}
-});
+serialTest(
+	"post-bind shortcut readiness survives delayed extension session startup",
+	{ concurrent: false },
+	async () => {
+		const temp = mkdtempSync(join(tmpdir(), "atomic-shortcut-delayed-bind-"));
+		const agentDir = join(temp, "custom-agent");
+		const shortcutConfig = join(temp, "shortcut.txt");
+		const shortcutLog = join(temp, "shortcut.log");
+		const keybindingsPath = join(agentDir, "keybindings.json");
+		const extension = join(moduleDir(import.meta.url), "fixtures", "blocking-tool-extension.ts");
+		mkdirSync(agentDir, { recursive: true });
+		writeFileSync(shortcutConfig, "ctrl+y");
+		writeFileSync(keybindingsPath, JSON.stringify({ "app.tools.expand": "ctrl+x" }));
+		const driver = new InteractiveModeDriver(fixtureArgs(extension), {
+			ATOMIC_CODING_AGENT_DIR: agentDir,
+			ATOMIC_KEYBINDINGS_SHORTCUT_CONFIG_FILE: shortcutConfig,
+			ATOMIC_KEYBINDINGS_SHORTCUT_LOG_FILE: shortcutLog,
+			ATOMIC_KEYBINDINGS_SESSION_START_DELAY_MS: "9000",
+		});
+		try {
+			await driver.waitFor((report) => report.type === "terminal_ready");
+			await driver.waitFor((report) => report.type === "heartbeat" && typeof report.enginePid === "number");
+			const postBindWaitStartedAt = performance.now();
+			await driver.waitUntilEngineBound("ctrl+y");
+			assert.ok(
+				performance.now() - postBindWaitStartedAt >= 7_500,
+				"semantic engine binding must outlive the former generic eight-second report budget",
+			);
+			driver.send({ type: "input", data: "\x19" });
+			const dispatchDeadline = performance.now() + 3_000;
+			while (shortcutInvocations(shortcutLog).length === 0 && performance.now() < dispatchDeadline) await sleep(20);
+			assert.deepEqual(shortcutInvocations(shortcutLog), ["ctrl+y"]);
+		} finally {
+			await driver.stop();
+			rmSync(temp, { recursive: true, force: true });
+		}
+	},
+);
 
 serialTest(
 	"real engine restart republishes bindings and replaces the remote shortcut catalog",
+	{ concurrent: false, timeout: ISOLATED_INTERACTIVE_MODE_SCENARIO_TIMEOUT_MS },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-shortcut-restart-parity-"));
 		const agentDir = join(temp, "custom-agent");
@@ -532,5 +537,4 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	ISOLATED_INTERACTIVE_MODE_SCENARIO_TIMEOUT_MS,
 );

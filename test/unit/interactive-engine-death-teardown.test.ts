@@ -19,7 +19,7 @@ import { DefaultMainDriver, type HarnessReport, isAlive, waitForExit } from "./f
  * POSIX-only for the same reason as the sibling default-main suite: it drives
  * SIGKILL and kill(pid, 0) process-tree semantics.
  */
-const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
+const serialTest = process.platform === "win32" ? test.skip : test;
 
 const FORBIDDEN_TEXT = ["Engine terminated;", "result unknown; inspect side effects before retrying"];
 
@@ -73,6 +73,7 @@ async function mountFrozenCustomUi(driver: DefaultMainDriver, command: string, m
 
 serialTest(
 	"engine death tears down a mounted inline remote custom UI and restores the editor",
+	{ concurrent: false, timeout: 45_000 },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-engine-death-inline-"));
 		const mountFile = join(temp, "mounted.pid");
@@ -140,11 +141,11 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	45_000,
 );
 
 serialTest(
 	"engine death hides a mounted overlay remote custom UI and returns focus to the editor",
+	{ concurrent: false, timeout: 45_000 },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-engine-death-overlay-"));
 		const mountFile = join(temp, "mounted.pid");
@@ -187,11 +188,11 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	45_000,
 );
 
 serialTest(
 	"engine-death teardown lands before any replacement engine_ready",
+	{ concurrent: false, timeout: 45_000 },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-engine-death-order-"));
 		const mountFile = join(temp, "mounted.pid");
@@ -232,7 +233,6 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	45_000,
 );
 
 /**
@@ -243,6 +243,7 @@ serialTest(
  */
 serialTest(
 	"nested remote mounts unwind newest-first and leave focus on the editor",
+	{ concurrent: false, timeout: 60_000 },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-engine-death-nested-"));
 		const mountFile = join(temp, "mounted.pid");
@@ -299,5 +300,4 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	60_000,
 );

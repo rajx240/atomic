@@ -28,7 +28,7 @@ import {
 installSlashDispatchTestHooks();
 
 describe("/workflow resume <runId> — active run is refused", () => {
-	test.sequential("resuming an already-running run refuses and points at /workflow connect", async () => {
+	test("resuming an already-running run refuses and points at /workflow connect", { concurrent: false }, async () => {
 		const runId = testRunId(`resume-slash-overlay-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 
@@ -73,7 +73,9 @@ describe("/workflow resume <runId> — active run is refused", () => {
 		assert.equal(refreshCalls, 0, "exact active runs must bypass durable preparation and discovery");
 	});
 
-	test.sequential("active run resume output does NOT include 'still active — no resume needed'", async () => {
+	test("active run resume output does NOT include 'still active — no resume needed'", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`resume-nomsg-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 
@@ -127,7 +129,9 @@ describe("/workflow resume <runId> — active run is refused", () => {
 });
 
 describe("/workflow resume <runId> — exact live fast path", () => {
-	test.sequential("exact paused live target bypasses completed durable catalog in headless mode", async () => {
+	test("exact paused live target bypasses completed durable catalog in headless mode", {
+		concurrent: false,
+	}, async () => {
 		async function createCatalogTrapBackend() {
 			const backend = Object.assign(await createMemoryTestBackend(), { completedCatalogCalls: 0 });
 			return Object.assign(backend, {
@@ -184,7 +188,7 @@ describe("/workflow resume <runId> — exact live fast path", () => {
 			.join("\n");
 		assert.match(content, /Resumed 1 stage\(s\)/);
 	});
-	test.sequential("exact paused nested child remains excluded from top-level resume targets", async () => {
+	test("exact paused nested child remains excluded from top-level resume targets", { concurrent: false }, async () => {
 		async function createCatalogCountingBackend() {
 			const backend = Object.assign(await createMemoryTestBackend(), { completedCatalogCalls: 0 });
 			const baselistCompletedWorkflows = backend.listCompletedWorkflows.bind(backend);
@@ -241,7 +245,7 @@ describe("/workflow resume <runId> — exact live fast path", () => {
 });
 
 describe("/workflow attach <rootRunId> <nestedStageId>", () => {
-	test.sequential("routes an explicit nested stage through the root graph overlay", async () => {
+	test("routes an explicit nested stage through the root graph overlay", { concurrent: false }, async () => {
 		let overlayOpens = 0;
 		let attachedOwner: string | undefined;
 		const notifications: string[] = [];
@@ -336,7 +340,7 @@ describe("/workflow attach <rootRunId> <nestedStageId>", () => {
 		assert.doesNotMatch(content, /Stage not found/);
 	});
 
-	test.sequential("routes /workflow attach through an actually hydrated durable child owner", async () => {
+	test("routes /workflow attach through an actually hydrated durable child owner", { concurrent: false }, async () => {
 		const rootRunId = testRunId(`attach-hydrated-root-${Date.now()}`);
 		const childRunId = testRunId(`attach-hydrated-child-${Date.now()}`);
 		const boundaryId = "hydrated-boundary";

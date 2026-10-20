@@ -22,7 +22,7 @@ import {
 } from "../../packages/coding-agent/src/modes/rpc/rpc-transport-error.ts";
 import { bunExecutable, moduleDir, sleep } from "../helpers/runtime.js";
 
-const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
+const serialTest = process.platform === "win32" ? test.skip : test;
 
 function makeClient(): RpcClient {
 	return new RpcClient({
@@ -57,6 +57,7 @@ async function waitFor(condition: () => boolean, timeoutMs: number, label: strin
 
 serialTest(
 	"a quiet accepted bash command is not returned as unsent when the engine dies",
+	{ concurrent: false, timeout: 60_000 },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-admission-"));
 		const marker = join(temp, "side-effect");
@@ -96,37 +97,33 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	60_000,
 );
 
-serialTest(
-	"a send the child never received stays restorable",
-	async () => {
-		const client = makeClient();
-		try {
-			await client.start();
-			await client.waitForInteractiveEngineBound();
-			// Detach the writer exactly as a dying transport would, before the frame
-			// can reach the child: no admission can exist for this request.
-			const stopped = client.stop();
-			const error = await client.prompt("never delivered").then(
-				() => undefined,
-				(reason: unknown) => reason,
-			);
-			await stopped;
+serialTest("a send the child never received stays restorable", { concurrent: false, timeout: 60_000 }, async () => {
+	const client = makeClient();
+	try {
+		await client.start();
+		await client.waitForInteractiveEngineBound();
+		// Detach the writer exactly as a dying transport would, before the frame
+		// can reach the child: no admission can exist for this request.
+		const stopped = client.stop();
+		const error = await client.prompt("never delivered").then(
+			() => undefined,
+			(reason: unknown) => reason,
+		);
+		await stopped;
 
-			assert.ok(isRpcTransportFailure(error));
-			assert.equal(isRpcRequestAcceptedFailure(error), false, "an undelivered frame must not look accepted");
-			assert.equal(isEngineSendFailure(error), true, "the exact draft must still be restorable");
-		} finally {
-			await client.stop();
-		}
-	},
-	60_000,
-);
+		assert.ok(isRpcTransportFailure(error));
+		assert.equal(isRpcRequestAcceptedFailure(error), false, "an undelivered frame must not look accepted");
+		assert.equal(isEngineSendFailure(error), true, "the exact draft must still be restorable");
+	} finally {
+		await client.stop();
+	}
+});
 
 serialTest(
 	"a queued admission frame is parsed before the exit rejection",
+	{ concurrent: false, timeout: 60_000 },
 	async () => {
 		// The fixture admits and exits in the same turn, so the frame is still in the
 		// pipe when `exit` fires — the ordering a real dying child cannot be made to
@@ -150,7 +147,6 @@ serialTest(
 			await client.stop();
 		}
 	},
-	60_000,
 );
 
 /**
@@ -162,6 +158,7 @@ serialTest(
  */
 serialTest(
 	"an admitted command is never restored when automatic recovery starts before dead stdout drains",
+	{ concurrent: false, timeout: 60_000 },
 	async () => {
 		const temp = mkdtempSync(join(tmpdir(), "atomic-admission-backlog-"));
 		const marker = join(temp, "side-effect");
@@ -211,7 +208,6 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	60_000,
 );
 
 /**
@@ -221,6 +217,7 @@ serialTest(
  */
 serialTest(
 	"an explicit stop preserves ownership of a request the child had taken",
+	{ concurrent: false, timeout: 60_000 },
 	async () => {
 		// A fixture that admits and then stays silent: only the host can end this
 		// request, so the stop path is the one under test rather than a race with a
@@ -251,5 +248,4 @@ serialTest(
 			await client.stop();
 		}
 	},
-	60_000,
 );

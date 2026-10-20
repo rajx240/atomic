@@ -8,9 +8,9 @@ export class CountdownTimer {
 	private intervalId: ReturnType<typeof setInterval> | undefined;
 	private remainingSeconds: number;
 
-	private declare tui: TUI | undefined;
-	private declare onTick: (seconds: number) => void;
-	private declare onExpire: () => void;
+	declare private tui: TUI | undefined;
+	declare private onTick: (seconds: number) => void;
+	declare private onExpire: () => void;
 
 	constructor(timeoutMs: number, tui: TUI | undefined, onTick: (seconds: number) => void, onExpire: () => void) {
 		this.tui = tui;

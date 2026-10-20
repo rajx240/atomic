@@ -174,7 +174,7 @@ type LiveChatEntry = ChatMessageEntry | { role: string };
 export class LiveChatEntriesController {
 	private streamingAssistantIndex: number | undefined;
 	private pendingToolIndexes = new Map<string, number>();
-	private declare readonly entries: LiveChatEntry[];
+	declare private readonly entries: LiveChatEntry[];
 	constructor(entries: LiveChatEntry[]) {
 		this.entries = entries;
 	}

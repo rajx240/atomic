@@ -42,8 +42,8 @@ class OverlayTestComponent implements Focusable {
 		{ label: "Cancel", hasInput: false, text: "", cursor: 0 },
 	];
 
-	private declare theme: Theme;
-	private declare done: (result: { action: string; query?: string } | undefined) => void;
+	declare private theme: Theme;
+	declare private done: (result: { action: string; query?: string } | undefined) => void;
 
 	constructor(theme: Theme, done: (result: { action: string; query?: string } | undefined) => void) {
 		this.theme = theme;

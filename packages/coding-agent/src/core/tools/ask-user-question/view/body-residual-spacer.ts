@@ -9,8 +9,8 @@ import type { Component } from "@earendil-works/pi-tui";
  * stays constant on tab switches.
  */
 export class BodyResidualSpacer implements Component {
-	private declare readonly getMax: (width: number) => number;
-	private declare readonly getCurrent: (width: number) => number;
+	declare private readonly getMax: (width: number) => number;
+	declare private readonly getCurrent: (width: number) => number;
 
 	constructor(getMax: (width: number) => number, getCurrent: (width: number) => number) {
 		this.getMax = getMax;

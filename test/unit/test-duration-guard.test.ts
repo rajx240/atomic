@@ -556,3 +556,27 @@ test("headroom is scored against the effective timeout, not a fixed ceiling", ()
 test("the advisory threshold leaves the observed healthy Windows tail quiet", () => {
 	assert.ok(WARN_RATIO > 0.3 && WARN_RATIO < 1);
 });
+
+test("Vitest 5 options budgets preserve scoped and table declarations", () => {
+	const source = [
+		"const SLOW = 90_000;",
+		'describe("scope", () => {',
+		'  test("slow", { concurrent: false, timeout: SLOW + 1_000 }, () => {});',
+		'  test.each(["a", "b"])("case %s", { concurrent: false, timeout: 60_000 }, () => {});',
+		'  test("dynamic", { timeout: unknownBudget() }, () => {});',
+		'  test("spread", { timeout: 120_000, ...unknownOptions }, () => {});',
+		'  test("duplicate", { timeout: 120_000, timeout: 1_000 }, () => {});',
+		'  test("computed", { timeout: 120_000, [unknownKey]: 1_000 }, () => {});',
+		'  test("getter", { timeout: 120_000, get extra() { return 1; } }, () => {});',
+		'  helper.test("foreign", { timeout: 500_000 }, () => {});',
+		"});",
+	].join("\n");
+	assert.deepEqual(
+		[...declaredTimeouts(source)],
+		[
+			["scope > slow", 91_000],
+			["scope > case a", 60_000],
+			["scope > case b", 60_000],
+		],
+	);
+});

@@ -150,7 +150,7 @@ describe("/workflow command in non-interactive (-p) mode (#1156 regressions)", (
 		};
 	}
 
-	test.sequential("/workflow quit <missing> rejects visibly in headless mode", async () => {
+	test("/workflow quit <missing> rejects visibly in headless mode", { concurrent: false }, async () => {
 		const { handler } = await registerWorkflowCommand();
 
 		await assertRejectsHeadlessCommand(
@@ -159,44 +159,49 @@ describe("/workflow command in non-interactive (-p) mode (#1156 regressions)", (
 		);
 	});
 
-	test.sequential.each([
+	test.each([
 		["reload", "reload", /Reloaded workflow resources\./],
 		["quit", "quit", /quit.*resume|resume.*quit/i],
 		["pause", "pause", /paused and can be resumed/],
 		["resume", "resume", /Resumed 1 stage\(s\)/],
-	])("/workflow %s emits displayable success output in headless mode", async (_label, action, expected) => {
-		const { handler, sent } = await registerWorkflowCommand();
-		const runId = testRunId(`headless-control-${action}`);
-		const stageId = `stage-${action}`;
+	])(
+		"/workflow %s emits displayable success output in headless mode",
+		{ concurrent: false },
+		async (_label, action, expected) => {
+			const { handler, sent } = await registerWorkflowCommand();
+			const runId = testRunId(`headless-control-${action}`);
+			const stageId = `stage-${action}`;
 
-		if (action !== "reload") {
-			const stageStatus = action === "resume" ? "paused" : "running";
-			store.recordRunStart({
-				...makeInflightRun(runId),
-				stages: [
-					{
-						id: stageId,
-						name: "worker",
-						status: stageStatus,
-						parentIds: [],
-						startedAt: Date.now(),
-						toolEvents: [],
-					},
-				],
-			});
-			registerTestStageHandle(runId, stageId, stageStatus);
-		}
+			if (action !== "reload") {
+				const stageStatus = action === "resume" ? "paused" : "running";
+				store.recordRunStart({
+					...makeInflightRun(runId),
+					stages: [
+						{
+							id: stageId,
+							name: "worker",
+							status: stageStatus,
+							parentIds: [],
+							startedAt: Date.now(),
+							toolEvents: [],
+						},
+					],
+				});
+				registerTestStageHandle(runId, stageId, stageStatus);
+			}
 
-		await handler(action === "reload" ? "reload" : `${action} ${runId}`, headlessNoOpCtx());
+			await handler(action === "reload" ? "reload" : `${action} ${runId}`, headlessNoOpCtx());
 
-		const outputs = commandOutputMessages(sent);
-		assert.ok(outputs.length > 0, `expected /workflow ${action} to emit command output`);
-		const content = outputs.map((message) => message.content ?? "").join("\n");
-		assert.match(content, expected);
-		if (action !== "reload") assert.ok(content.includes(runId), `expected full run id ${runId} in ${action} output`);
-	});
+			const outputs = commandOutputMessages(sent);
+			assert.ok(outputs.length > 0, `expected /workflow ${action} to emit command output`);
+			const content = outputs.map((message) => message.content ?? "").join("\n");
+			assert.match(content, expected);
+			if (action !== "reload")
+				assert.ok(content.includes(runId), `expected full run id ${runId} in ${action} output`);
+		},
+	);
 
-	test.sequential("/workflow pause --all emits displayable success output in headless mode", async () => {
+	test("/workflow pause --all emits displayable success output in headless mode", { concurrent: false }, async () => {
 		const { handler, sent } = await registerWorkflowCommand();
 		const runId = testRunId(`headless-pause-all-${Date.now()}`);
 		const stageId = "stage-pause-all";
@@ -223,7 +228,9 @@ describe("/workflow command in non-interactive (-p) mode (#1156 regressions)", (
 		assert.match(content, /Paused 1 run\(s\)\./);
 	});
 
-	test.sequential("/workflow quit --all emits displayable resumable success output in headless mode", async () => {
+	test("/workflow quit --all emits displayable resumable success output in headless mode", {
+		concurrent: false,
+	}, async () => {
 		const { handler, sent } = await registerWorkflowCommand();
 		const runId = testRunId(`headless-quit-all-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
@@ -237,7 +244,10 @@ describe("/workflow command in non-interactive (-p) mode (#1156 regressions)", (
 		assert.match(content, /quit.*resume|resume.*quit/i);
 	});
 
-	test.sequential("headless workflow failure remains visible through run status after acceptance", async () => {
+	test("headless workflow failure remains visible through run status after acceptance", {
+		concurrent: false,
+		timeout: 15_000,
+	}, async () => {
 		const resource = await registerWorkflowCommandWithResource(
 			"terminal-failure.ts",
 			`import { workflow } from "@bastani/atomic/workflows";
@@ -267,9 +277,12 @@ export default workflow({
 		} finally {
 			await resource.cleanup();
 		}
-	}, 15_000);
+	});
 
-	test.sequential("headless workflow acceptance and eventual success emit printable run details", async () => {
+	test("headless workflow acceptance and eventual success emit printable run details", {
+		concurrent: false,
+		timeout: 15_000,
+	}, async () => {
 		const resource = await registerWorkflowCommandWithResource(
 			"headless-terminal-success.ts",
 			`import { workflow } from "@bastani/atomic/workflows";
@@ -334,9 +347,11 @@ export default workflow({
 		} finally {
 			await resource.cleanup();
 		}
-	}, 15_000);
+	});
 
-	test.sequential("/workflow unknown workflow remains notify-and-handled with an interactive UI", async () => {
+	test("/workflow unknown workflow remains notify-and-handled with an interactive UI", {
+		concurrent: false,
+	}, async () => {
 		const { handler } = await registerWorkflowCommand();
 		const { ctx, notifications } = commandCtx(true);
 
@@ -349,7 +364,7 @@ export default workflow({
 		assert.match(error.message, /Workflow not found: ghost-workflow/);
 	});
 
-	test.sequential("/workflow still uses picker-capable path when a UI is available", async () => {
+	test("/workflow still uses picker-capable path when a UI is available", { concurrent: false }, async () => {
 		const { handler } = await registerWorkflowCommand();
 		const { ctx, pickerCalls } = commandCtx(true);
 
@@ -358,7 +373,9 @@ export default workflow({
 		assert.ok(pickerCalls.length > 0, "expected interactive picker path to be attempted");
 	});
 
-	test.sequential("/workflow prefers host-native input form over callable isolated editor stub and Escape cancellation does not dispatch", async () => {
+	test("/workflow prefers host-native input form over callable isolated editor stub and Escape cancellation does not dispatch", {
+		concurrent: false,
+	}, async () => {
 		const { handler, sent } = await registerWorkflowCommand();
 		const calls: string[] = [];
 		const ctx = {
@@ -390,7 +407,7 @@ export default workflow({
 		);
 	});
 
-	test.sequential("/workflow proceeds when hasUI is unset (degraded runtimes)", async () => {
+	test("/workflow proceeds when hasUI is unset (degraded runtimes)", { concurrent: false }, async () => {
 		const { handler, sent } = await registerWorkflowCommand();
 		const { ctx, messages } = commandCtx(undefined);
 

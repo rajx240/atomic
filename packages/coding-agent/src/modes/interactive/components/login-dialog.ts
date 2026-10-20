@@ -29,7 +29,7 @@ export class LoginDialogComponent extends Container implements Focusable {
 		this.input.focused = value;
 	}
 
-	private declare onComplete: (success: boolean, message?: string) => void;
+	declare private onComplete: (success: boolean, message?: string) => void;
 
 	constructor(
 		tui: TUI,

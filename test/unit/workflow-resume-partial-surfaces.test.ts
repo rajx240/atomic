@@ -110,7 +110,9 @@ afterEach(() => {
 
 describe("partial resume command surfaces", () => {
 	for (const parentAcknowledged of [false, true]) {
-		test.sequential(`runtime resume failure reports only acknowledged progress: ${parentAcknowledged} (#3670)`, async () => {
+		test(`runtime resume failure reports only acknowledged progress: ${parentAcknowledged} (#3670)`, {
+			concurrent: false,
+		}, async () => {
 			const runId = testRunId("runtime-resume-progress");
 			const childRunId = testRunId("runtime-resume-child");
 			const backend = await createMemoryTestBackend();
@@ -185,7 +187,7 @@ describe("partial resume command surfaces", () => {
 		});
 	}
 
-	test.sequential("failed targeted resume ignores an unchanged running sibling (#3670)", async () => {
+	test("failed targeted resume ignores an unchanged running sibling (#3670)", { concurrent: false }, async () => {
 		const runId = testRunId("targeted-resume-no-progress");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -240,7 +242,7 @@ describe("partial resume command surfaces", () => {
 		assert.doesNotMatch(result.message, /partially resumed/i);
 	});
 
-	test.sequential("workflow tool preserves result identity and reports partial failure", async () => {
+	test("workflow tool preserves result identity and reports partial failure", { concurrent: false }, async () => {
 		const runId = testRunId("tool-partial-resume");
 		const backend = await seedPartialRun(runId);
 		const runtime = createExtensionRuntime({ definitions: [], store });
@@ -262,7 +264,9 @@ describe("partial resume command surfaces", () => {
 		assert.equal(backend.getWorkflow(runId)?.status, "running");
 	});
 
-	test.sequential("workflow tool reports durable resume failure as partial when a stage is running", async () => {
+	test("workflow tool reports durable resume failure as partial when a stage is running", {
+		concurrent: false,
+	}, async () => {
 		async function createThrowRunningBackend() {
 			const backend = Object.assign(await createMemoryTestBackend(), {});
 			const basetransitionWorkflowStatus = backend.commitWorkflowStatusTransition.bind(backend);
@@ -327,7 +331,9 @@ describe("partial resume command surfaces", () => {
 		assert.equal(store.runs().find((run) => run.id === runId)?.stages[0]?.status, "running");
 	});
 
-	test.sequential("workflow tool retries transient durable reconciliation on a later resume request", async () => {
+	test("workflow tool retries transient durable reconciliation on a later resume request", {
+		concurrent: false,
+	}, async () => {
 		async function createTransientRunningBackend() {
 			const backend = Object.assign(await createMemoryTestBackend(), { runningAttempts: 0 });
 			const basetransitionWorkflowStatus = backend.commitWorkflowStatusTransition.bind(backend);
@@ -399,7 +405,7 @@ describe("partial resume command surfaces", () => {
 		assert.equal(backend.getWorkflow(runId)?.status, "running");
 	});
 
-	test.sequential("no-target slash selector reports resume rejection through the reporter", async () => {
+	test("no-target slash selector reports resume rejection through the reporter", { concurrent: false }, async () => {
 		const runId = testRunId("slash-picker-resume-failure");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -465,7 +471,7 @@ describe("partial resume command surfaces", () => {
 		assert.match(errors.join("\n"), /Failed to resume run.*picker resume rejected/);
 	});
 
-	test.sequential("slash resume reports the same partial failure instead of success or noop", async () => {
+	test("slash resume reports the same partial failure instead of success or noop", { concurrent: false }, async () => {
 		const runId = testRunId("slash-partial-resume");
 		const backend = await seedPartialRun(runId);
 		const runtime = createExtensionRuntime({ definitions: [], store });

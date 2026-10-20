@@ -36,8 +36,8 @@ export interface MultiSelectViewProps {
 export class MultiSelectView implements StatefulView<MultiSelectViewProps> {
 	private props: MultiSelectViewProps;
 
-	private declare readonly theme: Theme;
-	private declare readonly question: QuestionData;
+	declare private readonly theme: Theme;
+	declare private readonly question: QuestionData;
 
 	constructor(theme: Theme, question: QuestionData) {
 		this.theme = theme;

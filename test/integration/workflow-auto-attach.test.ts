@@ -129,7 +129,9 @@ afterAll(async () => {
 });
 
 describe("workflow auto-attach host entrypoints", () => {
-	test.sequential("/workflow opens one graph through extension pi.ui.custom when autoAttach is enabled", async () => {
+	test("/workflow opens one graph through extension pi.ui.custom when autoAttach is enabled", {
+		concurrent: false,
+	}, async () => {
 		const host = await createFactoryHost();
 
 		await host.workflowCommand.options.handler("attach-enabled", {
@@ -140,7 +142,7 @@ describe("workflow auto-attach host entrypoints", () => {
 		assert.equal(overlayMounts(host.customCalls).length, 1);
 	});
 
-	test.sequential("/workflow remains detached when autoAttach is omitted", async () => {
+	test("/workflow remains detached when autoAttach is omitted", { concurrent: false }, async () => {
 		const host = await createFactoryHost();
 
 		await host.workflowCommand.options.handler("attach-default", {
@@ -150,7 +152,9 @@ describe("workflow auto-attach host entrypoints", () => {
 		assert.equal(host.customCalls.length, 0);
 	});
 
-	test.sequential("/workflow preserves the existing input-form attach path when autoAttach is omitted", async () => {
+	test("/workflow preserves the existing input-form attach path when autoAttach is omitted", {
+		concurrent: false,
+	}, async () => {
 		const host = await createFactoryHost();
 
 		await host.workflowCommand.options.handler("attach-picker-default", {
@@ -164,7 +168,7 @@ describe("workflow auto-attach host entrypoints", () => {
 		assert.equal(overlayMounts(host.customCalls).length, 1);
 	});
 
-	test.sequential("headless /workflow remains detached when autoAttach is enabled", async () => {
+	test("headless /workflow remains detached when autoAttach is enabled", { concurrent: false }, async () => {
 		const host = await createFactoryHost();
 
 		await host.workflowCommand.options.handler("attach-enabled", {
@@ -175,7 +179,9 @@ describe("workflow auto-attach host entrypoints", () => {
 		assert.equal(host.customCalls.length, 0);
 	});
 
-	test.sequential("interactive registered tool returns the running result after mounting one graph", async () => {
+	test("interactive registered tool returns the running result after mounting one graph", {
+		concurrent: false,
+	}, async () => {
 		const host = await createFactoryHost();
 
 		const result = await executeWorkflow(host.tool, "attach-enabled", true);
@@ -188,7 +194,7 @@ describe("workflow auto-attach host entrypoints", () => {
 		assert.equal(overlayMounts(host.customCalls).length, 1);
 	});
 
-	test.sequential("interactive registered tool remains detached when autoAttach is omitted", async () => {
+	test("interactive registered tool remains detached when autoAttach is omitted", { concurrent: false }, async () => {
 		const host = await createFactoryHost();
 
 		const result = await executeWorkflow(host.tool, "attach-default", true);
@@ -199,7 +205,7 @@ describe("workflow auto-attach host entrypoints", () => {
 		assert.equal(host.customCalls.length, 0);
 	});
 
-	test.sequential("headless registered tool remains detached when autoAttach is enabled", async () => {
+	test("headless registered tool remains detached when autoAttach is enabled", { concurrent: false }, async () => {
 		const host = await createFactoryHost();
 
 		const result = await executeWorkflow(host.tool, "attach-enabled", false);

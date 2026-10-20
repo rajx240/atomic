@@ -60,7 +60,9 @@ afterEach(async () => {
 });
 
 describe("workflow tool durable-only checkpoint replay", () => {
-	test.sequential("resume keeps the original id and does not repeat a completed ctx.tool side effect", async () => {
+	test("resume keeps the original id and does not repeat a completed ctx.tool side effect", {
+		concurrent: false,
+	}, async () => {
 		const workflowId = testRunId("tool-durable-replay-original-id");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -144,7 +146,9 @@ describe("workflow tool durable-only checkpoint replay", () => {
 		await resumedJob.promise;
 		assert.equal(store.runs().find((run) => run.id === workflowId)?.status, "completed");
 	});
-	test.sequential("unknown full-ID resume hydrates only its target while ordinary status remains local", async () => {
+	test("unknown full-ID resume hydrates only its target while ordinary status remains local", {
+		concurrent: false,
+	}, async () => {
 		const backend = await createTrackingHydrationBackend();
 		setDurableBackend(backend);
 		const definition = workflow({ name: "lookup", description: "", inputs: {}, outputs: {}, run: () => ({}) });
@@ -172,7 +176,9 @@ describe("workflow tool durable-only checkpoint replay", () => {
 		assert.equal(backend.catalogHydrationCalls, 0, "full-ID resume must not hydrate the durable catalog");
 	});
 
-	test.sequential("full-ID resume surfaces targeted hydration failures and keeps --all unsupported", async () => {
+	test("full-ID resume surfaces targeted hydration failures and keeps --all unsupported", {
+		concurrent: false,
+	}, async () => {
 		const backend = await createFailingHydrationBackend();
 		setDurableBackend(backend);
 		const definition = workflow({
@@ -208,7 +214,9 @@ describe("workflow tool durable-only checkpoint replay", () => {
 		assert.equal(backend.catalogHydrationCalls, 0, "--all must not hydrate the durable catalog");
 	});
 
-	test.sequential("quit with an in-flight tool re-runs only that call at the same node identity", async () => {
+	test("quit with an in-flight tool re-runs only that call at the same node identity", {
+		concurrent: false,
+	}, async () => {
 		const workflowId = testRunId("tool-durable-replay-quit-in-flight");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -325,7 +333,9 @@ describe("workflow tool durable-only checkpoint replay", () => {
 		assert.equal(backend.getToolCheckpoint(workflowId, secondArgsHash)?.outcomeKind, "return_success");
 	});
 
-	test.sequential("resume supersedes an abandoned detached job and isolates its late callback", async () => {
+	test("resume supersedes an abandoned detached job and isolates its late callback", {
+		concurrent: false,
+	}, async () => {
 		const workflowId = testRunId("tool-durable-replay-abandoned-relaunch");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -442,7 +452,9 @@ describe("workflow tool durable-only checkpoint replay", () => {
 		assert.equal(backend.getToolCheckpoint(workflowId, argsHash)?.output, "fresh-output");
 	});
 
-	test.sequential("return-mode callback that fulfills after abort writes one inspection-only record", async () => {
+	test("return-mode callback that fulfills after abort writes one inspection-only record", {
+		concurrent: false,
+	}, async () => {
 		const workflowId = testRunId("tool-durable-late-return-cancellation");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);

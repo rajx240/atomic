@@ -107,7 +107,9 @@ afterEach(() => {
 });
 
 describe("/workflow resume transfers ownership of a run released by the previous session (#3569)", () => {
-	test.sequential("the slash command makes the successor the owner and clears the release record (#3569)", async () => {
+	test("the slash command makes the successor the owner and clears the release record (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("slash-released-adoption");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -135,7 +137,9 @@ describe("/workflow resume transfers ownership of a run released by the previous
 		}
 	});
 
-	test.sequential("the slash command adopts when the predecessor's snapshot is still in the shared run store (#3569)", async () => {
+	test("the slash command adopts when the predecessor's snapshot is still in the shared run store (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("slash-released-adoption-shared-store");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -163,7 +167,9 @@ describe("/workflow resume transfers ownership of a run released by the previous
 		assert.equal(backend.getWorkflow(runId)?.releasedModelOwner, undefined);
 	});
 
-	test.sequential("the slash command resolves a run-id prefix and still transfers ownership (#3569)", async () => {
+	test("the slash command resolves a run-id prefix and still transfers ownership (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("slash-released-adoption-prefix");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -177,7 +183,7 @@ describe("/workflow resume transfers ownership of a run released by the previous
 		assert.equal(backend.getWorkflow(runId)?.modelOwner, SUCCESSOR_SESSION);
 	});
 
-	test.sequential("slash resume of a run that was never released keeps its owner (#3569)", async () => {
+	test("slash resume of a run that was never released keeps its owner (#3569)", { concurrent: false }, async () => {
 		const cases = [
 			{ label: "paused run its owner never released", overrides: { releasedModelOwner: undefined } },
 			{ label: "run released by a different owner", overrides: { releasedModelOwner: OTHER_SESSION } },
@@ -197,7 +203,7 @@ describe("/workflow resume transfers ownership of a run released by the previous
 		}
 	});
 
-	test.sequential("slash resume does not adopt a crashed owner's running run (#3569)", async () => {
+	test("slash resume does not adopt a crashed owner's running run (#3569)", { concurrent: false }, async () => {
 		const runId = testRunId("slash-crashed-owner");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -214,7 +220,9 @@ describe("/workflow resume transfers ownership of a run released by the previous
 		assert.equal(backend.getWorkflow(runId)?.modelOwner, PREVIOUS_SESSION);
 	});
 
-	test.sequential("the original owner's slash resume of its own released run keeps working (#3569)", async () => {
+	test("the original owner's slash resume of its own released run keeps working (#3569)", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId("slash-released-original-owner");
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
@@ -231,7 +239,9 @@ describe("/workflow resume transfers ownership of a run released by the previous
 });
 
 for (const accept of [false, true]) {
-	test.sequential(`cross-project slash resume ${accept ? "forks on yes" : "aborts on no"} (#3577)`, async () => {
+	test(`cross-project slash resume ${accept ? "forks on yes" : "aborts on no"} (#3577)`, {
+		concurrent: false,
+	}, async () => {
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
 		const runId = testRunId(`slash-cross-project-${accept}`);
@@ -300,7 +310,7 @@ for (const accept of [false, true]) {
 	});
 }
 
-test.sequential("cross-project tool and headless resume give an actionable error (#3577)", async () => {
+test("cross-project tool and headless resume give an actionable error (#3577)", { concurrent: false }, async () => {
 	const backend = await createMemoryTestBackend();
 	setDurableBackend(backend);
 	const runId = testRunId("cross-project-headless");

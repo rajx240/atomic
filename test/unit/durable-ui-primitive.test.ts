@@ -242,7 +242,7 @@ describe("wrapUiWithDurable", () => {
 		assert.equal(baseB.calls.custom, 0);
 	});
 
-	test.sequential("replays one checkpoint when process cwd changes", async () => {
+	test("replays one checkpoint when process cwd changes", { concurrent: false }, async () => {
 		const originalCwd = process.cwd();
 		const firstBase = makeBaseUi({
 			async input() {

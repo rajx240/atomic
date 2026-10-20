@@ -213,12 +213,12 @@ export class AgentSessionRuntime {
 		});
 	}
 
-	private declare _session: AgentSession;
-	private declare _services: AgentSessionServices;
-	private declare readonly createRuntime: CreateAgentSessionRuntimeFactory;
-	private declare _diagnostics: AgentSessionRuntimeDiagnostic[];
-	private declare _modelFallbackMessage?: string;
-	private declare _modelFallbackReason?: ModelFallbackReason;
+	declare private _session: AgentSession;
+	declare private _services: AgentSessionServices;
+	declare private readonly createRuntime: CreateAgentSessionRuntimeFactory;
+	declare private _diagnostics: AgentSessionRuntimeDiagnostic[];
+	declare private _modelFallbackMessage?: string;
+	declare private _modelFallbackReason?: ModelFallbackReason;
 
 	constructor(
 		_session: AgentSession,

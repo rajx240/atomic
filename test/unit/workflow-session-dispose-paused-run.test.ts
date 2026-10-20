@@ -103,7 +103,9 @@ afterEach(() => {
 
 describe("a disposed session leaves its workflow runs paused and resumable", () => {
 	for (const { label, create } of closedSessionErrors) {
-		test.sequential(`keeps a quit-paused run paused when its session is disposed (${label}) (#3742)`, async () => {
+		test(`keeps a quit-paused run paused when its session is disposed (${label}) (#3742)`, {
+			concurrent: false,
+		}, async () => {
 			const backend = await createMemoryTestBackend();
 			setDurableBackend(backend);
 			const owner = ownerSession();
@@ -138,7 +140,9 @@ describe("a disposed session leaves its workflow runs paused and resumable", () 
 			assert.equal(backend.getWorkflow(runId)?.modelOwner, SUCCESSOR_SESSION);
 		});
 
-		test.sequential(`pauses a run whose stage was mid-step when its session was disposed (${label}) (#3742)`, async () => {
+		test(`pauses a run whose stage was mid-step when its session was disposed (${label}) (#3742)`, {
+			concurrent: false,
+		}, async () => {
 			const backend = await createMemoryTestBackend();
 			setDurableBackend(backend);
 			const owner = ownerSession();
@@ -171,7 +175,9 @@ describe("a disposed session leaves its workflow runs paused and resumable", () 
 		});
 	}
 
-	test.sequential("pauses a root run whose nested child's stage hit the closed session and lets a successor resume it (#3742)", async () => {
+	test("pauses a root run whose nested child's stage hit the closed session and lets a successor resume it (#3742)", {
+		concurrent: false,
+	}, async () => {
 		const backend = await createMemoryTestBackend();
 		setDurableBackend(backend);
 		const owner = ownerSession();
@@ -240,7 +246,7 @@ describe("a closed-session error from a live session still fails the run", () =>
 	] as const;
 
 	for (const { label, where, create } of cases) {
-		test.sequential(`does not pause a run on ${label} while its owner is alive (#3742)`, async () => {
+		test(`does not pause a run on ${label} while its owner is alive (#3742)`, { concurrent: false }, async () => {
 			const backend = await createMemoryTestBackend();
 			setDurableBackend(backend);
 			const owner = ownerSession();

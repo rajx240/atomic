@@ -61,7 +61,7 @@ function makeEditor(inputs: string[]): Component & { focused: boolean } {
 }
 
 describe("fullscreen input navigation", () => {
-	test.sequential("keeps Home/End with the editor and routes Ctrl+Home/Ctrl+End to the transcript", () => {
+	test("keeps Home/End with the editor and routes Ctrl+Home/Ctrl+End to the transcript", { concurrent: false }, () => {
 		const terminal = new RecordingTerminal();
 		terminal.columns = 40;
 		terminal.rows = 10;
@@ -133,7 +133,7 @@ describe("fullscreen input navigation", () => {
 		}
 	});
 
-	test.sequential("supports opt-in half-page and marked-message navigation", () => {
+	test("supports opt-in half-page and marked-message navigation", { concurrent: false }, () => {
 		const originalKeybindings = getKeybindings();
 		setKeybindings(
 			new KeybindingsManager({
@@ -191,7 +191,7 @@ describe("fullscreen input navigation", () => {
 		}
 	});
 
-	test.sequential("keeps workflow paging available to focused components in regular mode", () => {
+	test("keeps workflow paging available to focused components in regular mode", { concurrent: false }, () => {
 		const terminal = new RecordingTerminal();
 		const tui = new TuiMainScreen(terminal);
 		const inputs: string[] = [];
@@ -225,7 +225,7 @@ describe("fullscreen input navigation", () => {
 		}
 	});
 
-	test.sequential("preserves workflow paging precedence in fullscreen", () => {
+	test("preserves workflow paging precedence in fullscreen", { concurrent: false }, () => {
 		const keybindings = new KeybindingsManager({
 			"tui.altScreen.halfPageUp": "ctrl+u",
 			"tui.altScreen.halfPageDown": "ctrl+d",
@@ -310,7 +310,7 @@ describe("fullscreen input navigation", () => {
 			tui.stop();
 		}
 	});
-	test.sequential("lets a real selector page without scrolling the transcript twice", () => {
+	test("lets a real selector page without scrolling the transcript twice", { concurrent: false }, () => {
 		setKeybindings(new KeybindingsManager());
 		const terminal = new RecordingTerminal();
 		terminal.columns = 40;
@@ -367,7 +367,7 @@ describe("fullscreen input navigation", () => {
 		}
 	});
 
-	test.sequential("repairs focus before routing a key after its overlay becomes hidden", () => {
+	test("repairs focus before routing a key after its overlay becomes hidden", { concurrent: false }, () => {
 		setKeybindings(new KeybindingsManager());
 		const terminal = new RecordingTerminal();
 		terminal.columns = 40;
@@ -429,7 +429,7 @@ describe("fullscreen input navigation", () => {
 		}
 	});
 
-	test.sequential("uses the immediate render path for a handled viewport key", async () => {
+	test("uses the immediate render path for a handled viewport key", { concurrent: false }, async () => {
 		setKeybindings(new KeybindingsManager());
 		const terminal = new RecordingTerminal();
 		terminal.columns = 40;

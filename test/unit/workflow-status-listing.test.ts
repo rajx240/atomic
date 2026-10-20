@@ -80,7 +80,9 @@ function recordRunningRunWithStages(runId: string): void {
 }
 
 describe("workflow tool status run listing", () => {
-	test.sequential("status without runId lists session runs with concise summaries, in-flight first", async () => {
+	test("status without runId lists session runs with concise summaries, in-flight first", {
+		concurrent: false,
+	}, async () => {
 		const activeId = `status-listing-active-${Date.now()}`;
 		recordRunningRunWithStages(activeId);
 		recordTerminalRun(`status-listing-done-${Date.now()}`, "completed", {
@@ -123,7 +125,7 @@ describe("workflow tool status run listing", () => {
 		);
 	});
 
-	test.sequential("statusFilter filters the run listing by run status", async () => {
+	test("statusFilter filters the run listing by run status", { concurrent: false }, async () => {
 		const activeId = `status-filter-active-${Date.now()}`;
 		const doneId = `status-filter-done-${Date.now()}`;
 		recordRunningRunWithStages(activeId);
@@ -153,7 +155,7 @@ describe("workflow tool status run listing", () => {
 		assert.deepEqual(failed.snapshots, []);
 	});
 
-	test.sequential("statusFilter awaiting_input selects runs with a pending stage prompt", async () => {
+	test("statusFilter awaiting_input selects runs with a pending stage prompt", { concurrent: false }, async () => {
 		const awaitingId = `status-filter-awaiting-${Date.now()}`;
 		const plainId = `status-filter-plain-${Date.now()}`;
 		recordRunningRunWithStages(awaitingId);
@@ -173,7 +175,9 @@ describe("workflow tool status run listing", () => {
 		assert.equal(result.runs[0]!.awaitingInputCount, 1);
 	});
 
-	test.sequential("status rendering attributes a run-level prompt in a hidden child without exposing it in JSON", async () => {
+	test("status rendering attributes a run-level prompt in a hidden child without exposing it in JSON", {
+		concurrent: false,
+	}, async () => {
 		const rootId = `status-nested-root-${Date.now()}`;
 		const childId = `status-nested-child-${Date.now()}`;
 		store.recordRunStart(makeInflightRun(rootId));
@@ -198,7 +202,9 @@ describe("workflow tool status run listing", () => {
 		assert.doesNotMatch(json, new RegExp(childId));
 	});
 
-	test.sequential("status text output is a concise per-run listing; json format returns structured data", async () => {
+	test("status text output is a concise per-run listing; json format returns structured data", {
+		concurrent: false,
+	}, async () => {
 		const activeId = `status-content-active-${Date.now()}`;
 		recordRunningRunWithStages(activeId);
 		const handler = makeToolHandler();
@@ -253,7 +259,7 @@ describe("workflow tool status run listing", () => {
 		assert.equal(parsed.snapshots.length, 1);
 	});
 
-	test.sequential("status hint states each Intercom coaching rule exactly once", async () => {
+	test("status hint states each Intercom coaching rule exactly once", { concurrent: false }, async () => {
 		const runId = `status-hint-${Date.now()}`;
 		store.recordRunStart({ ...makeInflightRun(runId), name: "hint-status" });
 		const result = await makeToolHandler()({ action: "status" }, {} as never);
@@ -267,7 +273,9 @@ describe("workflow tool status run listing", () => {
 		}
 	});
 
-	test.sequential("/workflow status preserves deliverable pending-stage targets through the graph projection", async () => {
+	test("/workflow status preserves deliverable pending-stage targets through the graph projection", {
+		concurrent: false,
+	}, async () => {
 		const runId = "aaaaaaaa-1111-4111-8111-111111111111";
 		store.recordRunStart({
 			...makeInflightRun(runId),
@@ -293,7 +301,9 @@ describe("workflow tool status run listing", () => {
 		assert.match(message.content ?? "", new RegExp(`workflow:${runId}/review-a`));
 		assert.doesNotMatch(message.content ?? "", /review \(review-a\) · delivery unavailable/);
 	});
-	test.sequential("status text enumerates pending stages with canonical Intercom targets and truthful delivery capability", async () => {
+	test("status text enumerates pending stages with canonical Intercom targets and truthful delivery capability", {
+		concurrent: false,
+	}, async () => {
 		const runId = `status-pending-${Date.now()}`;
 		store.recordRunStart({ ...makeInflightRun(runId), name: "pending-status" });
 		for (const [id, available] of [
@@ -357,7 +367,7 @@ describe("workflow tool status run listing", () => {
 		assert.match(text, /`ask` requires a live reply-capable stage/);
 	});
 
-	test.sequential("status text singularizes exactly one pending stage omitted by its bound", async () => {
+	test("status text singularizes exactly one pending stage omitted by its bound", { concurrent: false }, async () => {
 		const runId = `status-pending-overflow-${Date.now()}`;
 		store.recordRunStart({
 			...makeInflightRun(runId),
@@ -378,7 +388,9 @@ describe("workflow tool status run listing", () => {
 		assert.doesNotMatch(text, /… 1 more pending stages/);
 	});
 
-	test.sequential("terminated runs never advertise pending-stage targets on tool, list, or detail surfaces", async () => {
+	test("terminated runs never advertise pending-stage targets on tool, list, or detail surfaces", {
+		concurrent: false,
+	}, async () => {
 		const runId = "ffffffff-1111-4111-8111-111111111111";
 		const target = `workflow:${runId}/review-a`;
 		store.recordRunStart({
@@ -414,7 +426,9 @@ describe("workflow tool status run listing", () => {
 		assert.match(listText, /pending: review \(review-a\) · delivery unavailable/);
 		assert.match(detailText, /pending id {6}review-a · delivery unavailable/);
 	});
-	test.sequential("nested pending stages render the exact canonical target published by the Intercom roster", async () => {
+	test("nested pending stages render the exact canonical target published by the Intercom roster", {
+		concurrent: false,
+	}, async () => {
 		const rootRunId = "11111111-1111-4111-8111-111111111111";
 		const childRunId = "22222222-2222-4222-8222-222222222222";
 		const rootStageId = "root-review";
@@ -499,7 +513,9 @@ describe("workflow tool status run listing", () => {
 		assert.match(toolText, new RegExp(`review \\(${rootStageId}\\).*workflow:${rootRunId}/${rootStageId}`));
 	});
 
-	test.sequential("nested pending stages stop advertising targets when their owning child run terminates", async () => {
+	test("nested pending stages stop advertising targets when their owning child run terminates", {
+		concurrent: false,
+	}, async () => {
 		const advertisedTargets: string[] = [];
 		const missingUnavailableLabels: string[] = [];
 		for (const [index, terminalStatus] of ["failed", "cancelled", "killed", "completed"].entries()) {
@@ -564,7 +580,7 @@ describe("workflow tool status run listing", () => {
 		assert.deepEqual(missingUnavailableLabels, []);
 	});
 
-	test.sequential("status text output reports an empty filtered listing", async () => {
+	test("status text output reports an empty filtered listing", { concurrent: false }, async () => {
 		const handler = makeToolHandler();
 		const result = await handler({ action: "status", statusFilter: "paused" }, {} as never);
 		const text = renderWorkflowToolContent(result, {

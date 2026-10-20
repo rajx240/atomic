@@ -70,7 +70,7 @@ test("rejects invalid URL line selectors", () => {
 	expect(() => parseReadUrlTarget("https://example.com/doc:3+0")).toThrow("Invalid URL line selector");
 });
 
-test.sequential("blocks private URL reads by default", async () => {
+test("blocks private URL reads by default", { concurrent: false }, async () => {
 	const previous = process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
 	delete process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
 	try {
@@ -96,7 +96,7 @@ test.sequential("blocks private URL reads by default", async () => {
 	}
 });
 
-test.sequential("revalidates redirect targets before fetching them", async () => {
+test("revalidates redirect targets before fetching them", { concurrent: false }, async () => {
 	const previousAllowance = process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
 	const previousFetch = globalThis.fetch;
 	delete process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;

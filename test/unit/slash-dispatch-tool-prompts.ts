@@ -81,7 +81,7 @@ describe("tool run-control actions", () => {
 		assert.equal(wasDispatched(), false);
 		assert.match((result as { error?: string }).error ?? "", /workflows cannot invoke workflows/);
 	}
-	test.sequential("makeExecuteWorkflowTool answers stage pending prompts", async () => {
+	test("makeExecuteWorkflowTool answers stage pending prompts", { concurrent: false }, async () => {
 		const runId = testRunId(`stage-tool-answer-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
@@ -116,7 +116,9 @@ describe("tool run-control actions", () => {
 		assert.equal(stage?.pendingPrompt, undefined);
 		assert.equal(store.getStagePromptAnswer(runId, "stage-prompt-1")?.answerSource, "workflow_tool");
 	});
-	test.sequential('makeExecuteWorkflowTool stores boolean true for the observed string "true" confirm answer', async () => {
+	test('makeExecuteWorkflowTool stores boolean true for the observed string "true" confirm answer', {
+		concurrent: false,
+	}, async () => {
 		// Reproduces run 86dbfd4d-7123-4894-967c-7856227bc708: the retained assistant
 		// tool call carried `response: "true"` (a JSON string), and the pre-fix sinks
 		// turned it into `confirmed: false`.
@@ -133,7 +135,7 @@ describe("tool run-control actions", () => {
 		assert.equal(stored?.value, true);
 		assert.equal(typeof stored?.value, "boolean");
 	});
-	test.sequential("makeExecuteWorkflowTool coerces primitive prompt answers by kind", async () => {
+	test("makeExecuteWorkflowTool coerces primitive prompt answers by kind", { concurrent: false }, async () => {
 		const cases = [
 			{ kind: "confirm" as const, field: "text" as const, value: " YES ", expected: true },
 			{ kind: "confirm" as const, field: "response" as const, value: true, expected: true },
@@ -187,7 +189,9 @@ describe("tool run-control actions", () => {
 		}
 	});
 
-	test.sequential("makeExecuteWorkflowTool rejects unusable primitive answers without resolving the prompt", async () => {
+	test("makeExecuteWorkflowTool rejects unusable primitive answers without resolving the prompt", {
+		concurrent: false,
+	}, async () => {
 		const cases = [
 			{
 				kind: "confirm" as const,
@@ -227,7 +231,7 @@ describe("tool run-control actions", () => {
 		}
 	});
 
-	test.sequential("makeExecuteWorkflowTool refuses workflow answer for custom prompt nodes", async () => {
+	test("makeExecuteWorkflowTool refuses workflow answer for custom prompt nodes", { concurrent: false }, async () => {
 		const runId = testRunId(`stage-tool-answer-custom-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
@@ -270,7 +274,9 @@ describe("tool run-control actions", () => {
 		assert.equal(store.getStagePromptAnswer(runId, "stage-custom-prompt"), undefined);
 	});
 
-	test.sequential("makeExecuteWorkflowTool tags brokered prompt answers as workflow-tool sourced", async () => {
+	test("makeExecuteWorkflowTool tags brokered prompt answers as workflow-tool sourced", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`stage-tool-answer-broker-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
@@ -325,7 +331,9 @@ describe("tool run-control actions", () => {
 		}
 	});
 
-	test.sequential("makeExecuteWorkflowTool leaves pending prompts untouched when payload is omitted", async () => {
+	test("makeExecuteWorkflowTool leaves pending prompts untouched when payload is omitted", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`stage-tool-answer-omitted-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
@@ -360,7 +368,9 @@ describe("tool run-control actions", () => {
 		assert.equal(stage?.pendingPrompt?.id, "prompt-omitted");
 	});
 
-	test.sequential("makeExecuteWorkflowTool delivery answer without a pending prompt does not fall through to live followUp", async () => {
+	test("makeExecuteWorkflowTool delivery answer without a pending prompt does not fall through to live followUp", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`stage-tool-answer-answer-no-prompt-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
@@ -398,7 +408,9 @@ describe("tool run-control actions", () => {
 			dispose();
 		}
 	});
-	test.sequential("makeExecuteWorkflowTool rejects removed send without mutating workflow state", async () => {
+	test("makeExecuteWorkflowTool rejects removed send without mutating workflow state", {
+		concurrent: false,
+	}, async () => {
 		const handler = makeToolHandler();
 		const before = store.graphSnapshot();
 

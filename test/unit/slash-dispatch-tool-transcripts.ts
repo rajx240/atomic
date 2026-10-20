@@ -60,7 +60,7 @@ describe("tool run-control actions", () => {
 		assert.equal(wasDispatched(), false);
 		assert.match((result as { error?: string }).error ?? "", /workflows cannot invoke workflows/);
 	}
-	test.sequential("makeExecuteWorkflowTool applies limit and lets tail override limit", async () => {
+	test("makeExecuteWorkflowTool applies limit and lets tail override limit", { concurrent: false }, async () => {
 		const runId = testRunId(`stage-tool-transcript-limit-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
@@ -121,7 +121,9 @@ describe("tool run-control actions", () => {
 		assert.deepEqual(tailTranscript.entries, [{ role: "assistant", text: "done", timestamp: 4 }]);
 	});
 
-	test.sequential("makeExecuteWorkflowTool falls back to bounded preview when transcript path is unavailable", async () => {
+	test("makeExecuteWorkflowTool falls back to bounded preview when transcript path is unavailable", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`stage-tool-transcript-no-path-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
@@ -179,7 +181,9 @@ describe("tool run-control actions", () => {
 		assert.match(renderResult(result, { plain: true, width: 320 }), /no session file; preview:/);
 	});
 
-	test.sequential("makeExecuteWorkflowTool labels empty live handles as live transcript source", async () => {
+	test("makeExecuteWorkflowTool labels empty live handles as live transcript source", {
+		concurrent: false,
+	}, async () => {
 		const runId = testRunId(`stage-tool-live-empty-handle-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
@@ -215,7 +219,7 @@ describe("tool run-control actions", () => {
 		}
 	});
 
-	test.sequential("makeExecuteWorkflowTool uses error transcript source for target errors", async () => {
+	test("makeExecuteWorkflowTool uses error transcript source for target errors", { concurrent: false }, async () => {
 		const handler = makeToolHandler();
 
 		const result = await handler(
@@ -233,7 +237,7 @@ describe("tool run-control actions", () => {
 		assert.equal(transcript.entries[0]?.role, "notice");
 	});
 
-	test.sequential("makeExecuteWorkflowTool preserves empty live transcript text blocks", async () => {
+	test("makeExecuteWorkflowTool preserves empty live transcript text blocks", { concurrent: false }, async () => {
 		const runId = testRunId(`stage-tool-live-empty-block-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
@@ -273,7 +277,7 @@ describe("tool run-control actions", () => {
 		}
 	});
 
-	test.sequential("makeExecuteWorkflowTool omits text for live non-text content blocks", async () => {
+	test("makeExecuteWorkflowTool omits text for live non-text content blocks", { concurrent: false }, async () => {
 		const runId = testRunId(`stage-tool-live-non-text-${Date.now()}`);
 		store.recordRunStart(makeInflightRun(runId));
 		store.recordStageStart(runId, {
